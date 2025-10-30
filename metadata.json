@@ -1,0 +1,7 @@
+{
+  "name": "Mi Boda Ideal",
+  "description": "Una plataforma completa para planificar la boda de tus sueños. Encuentra proveedores, busca inspiración y gestiona tu presupuesto y lista de invitados, todo en un solo lugar.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

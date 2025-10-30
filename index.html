@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mi Boda Ideal - Tu Planificador de Bodas</title>
+    <meta id="meta-description" name="description" content="Una plataforma completa para planificar la boda de tus sueños. Encuentra proveedores, busca inspiración y gestiona tu presupuesto y lista de invitados, todo en un solo lugar." />
+    <meta id="meta-author" name="author" content="Mi Boda Ideal" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Fuente Original: Playfair Display & Poppins -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet"> -->
+    
+    <!-- Fuente Premium Propuesta: Cormorant Garamond & Lato -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;700&family=Lato:wght@300;400;700&display=swap" rel="stylesheet"> -->
+
+    <!-- Fuente (matrimonios.cl style): Bodoni Moda & Montserrat (Reemplazada por legibilidad) -->
+    <!-- <link href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,700&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet"> -->
+
+    <!-- Nueva Fuente Final (Más Legible): Playfair Display & Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Ocultar la barra de desplazamiento en navegadores WebKit (Chrome, Safari) */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Ocultar la barra de desplazamiento en IE, Edge y Firefox */
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Montserrat', 'sans-serif'],
+                        'serif': ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        'brand-primary': '#c10681', // Fucsia Nupcial
+                        'brand-accent': '#a3056d',  // Fucsia Intenso (para :hover)
+                        'brand-secondary': '#FDE7F6', // Rosa Pálido
+                        'brand-dark': '#3C3633',     // Gris Pizarra (para texto)
+                        'brand-light': '#F5F5F5',    // Blanco Roto (para fondo)
+                    }
+                }
+            }
+        }
+    </script>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0"
+  }
+}
+</script>
+</head>
+<body class="bg-brand-light">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+</body>
+</html>
