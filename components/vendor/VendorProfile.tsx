@@ -95,7 +95,7 @@ const VendorProfile: React.FC = () => {
         setSuccessMessage('');
         try {
             const vendorDocRef = doc(db, 'vendors', vendorData.id);
-            await updateDoc(vendorDocRef, formData);
+           await updateDoc(vendorDocRef, { ...formData });
             setSuccessMessage('¡Perfil actualizado con éxito!');
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (error) {
