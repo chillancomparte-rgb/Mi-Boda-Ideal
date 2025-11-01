@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { AdminUser } from '../../types';
 import { db } from '../../services/firebase';
-import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
 import { TrashIcon } from '../icons/TrashIcon';
 import { EditIcon } from '../icons/EditIcon';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
@@ -21,8 +21,10 @@ const AdminUsers: React.FC = () => {
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
-            const usersCollection = collection(db, 'users');
-            const usersSnapshot = await getDocs(usersCollection);
+            const usersCollectionRef = collection(db, 'users');
+            // FIX: Query to exclude the admin user from the client list.
+            const q = query(usersCollectionRef, where("email", "!=", "superadmin@mibodaideal.cl"));
+            const usersSnapshot = await getDocs(q);
             const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AdminUser[];
             setUsers(usersList);
         } catch (error) {

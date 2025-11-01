@@ -38,6 +38,7 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
+
 // Comprobamos si la configuración parece ser la de marcador de posición
 if (firebaseConfig.apiKey === "AIzaSyAZlZ4WwqCdSwrhmYGldGBEdxMxr4eOn_0") {
     console.warn("ADVERTENCIA: Estás utilizando la configuración de Firebase de marcador de posición. Por favor, actualiza `services/firebase.ts` con tus propias credenciales para que la aplicación funcione correctamente.");

@@ -1,145 +1,125 @@
-import React, { useState } from 'react';
-import { PhoneIcon } from '../icons/PhoneIcon';
-import { MailIcon } from '../icons/MailIcon';
-import { EditIcon } from '../icons/EditIcon';
-import { PlusCircleIcon } from '../icons/PlusCircleIcon';
-
-const VENDOR_CATEGORIES = ["Salones de eventos", "Fotógrafos", "Banquetes", "Música y DJ", "Vestidos de novia", "Decoración", "Floristerías"];
-
-interface VendorProfileData {
-    companyName: string;
-    category: string;
-    description: string;
-    phone: string;
-    email: string;
-    gallery: string[];
-}
-
-const initialProfileData: VendorProfileData = {
-    companyName: 'Fotografía "El Lente Mágico"',
-    category: 'Fotógrafos',
-    description: 'Capturamos los momentos más especiales de tu gran día con un enfoque artístico y profesional. Nuestra pasión es contar tu historia de amor a través de imágenes que perdurarán para siempre. Ofrecemos paquetes personalizados para adaptarnos a tus necesidades.',
-    phone: '+56 9 1234 5678',
-    email: 'contacto@lentemagico.cl',
-    gallery: [
-        'https://images.unsplash.com/photo-1510076857177-7470076d4098?q=80&w=400&h=300&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=400&h=300&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1532712938310-34cb39825785?q=80&w=400&h=300&auto=format&fit=crop',
-        'https://images.unsplash.com/photo-1511795409834-ef04bbd51622?q=80&w=400&h=300&auto=format&fit=crop',
-    ]
-};
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../hooks/useAuth';
+import { db } from '../../services/firebase';
+import { doc, getDoc, updateDoc, query, collection, where, getDocs, limit } from 'firebase/firestore';
+import type { AdminVendor } from '../../types';
+import Spinner from '../Spinner';
+import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
 
 const VendorProfile: React.FC = () => {
-    const [profile, setProfile] = useState<VendorProfileData>(initialProfileData);
-    const [isSaved, setIsSaved] = useState(false);
+    const { user } = useAuth();
+    const [vendorData, setVendorData] = useState<AdminVendor | null>(null);
+    const [formData, setFormData] = useState<Partial<AdminVendor>>({});
+    const [isLoading, setIsLoading] = useState(true);
+    const [isSaving, setIsSaving] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setProfile(prev => ({ ...prev, [name]: value }));
+    useEffect(() => {
+        const fetchVendorData = async () => {
+            if (!user || !user.email) return;
+
+            setIsLoading(true);
+            try {
+                const vendorsQuery = query(collection(db, 'vendors'), where("email", "==", user.email), limit(1));
+                const vendorSnapshot = await getDocs(vendorsQuery);
+
+                if (!vendorSnapshot.empty) {
+                    const vendorDoc = vendorSnapshot.docs[0];
+                    const data = { id: vendorDoc.id, ...vendorDoc.data() } as AdminVendor;
+                    setVendorData(data);
+                    setFormData(data);
+                } else {
+                    // Handle case where vendor profile doesn't exist yet for this user
+                    console.log("No vendor profile found for this user.");
+                }
+            } catch (error) {
+                console.error("Error fetching vendor profile:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchVendorData();
+    }, [user]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value,
+        });
     };
 
-    const handleSave = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSaved(true);
-        setTimeout(() => setIsSaved(false), 3000);
-        console.log("Perfil guardado:", profile);
+        if (!vendorData) return;
+
+        setIsSaving(true);
+        setSuccessMessage('');
+        try {
+            const vendorDocRef = doc(db, 'vendors', vendorData.id);
+            await updateDoc(vendorDocRef, formData);
+            setSuccessMessage('¡Perfil actualizado con éxito!');
+            setTimeout(() => setSuccessMessage(''), 3000);
+        } catch (error) {
+            console.error("Error updating profile:", error);
+        } finally {
+            setIsSaving(false);
+        }
     };
+    
+    if (isLoading) {
+        return <Spinner />;
+    }
+
+    if (!vendorData) {
+        return (
+            <div className="bg-white p-8 rounded-lg shadow-sm">
+                <h3 className="text-2xl font-serif font-bold text-brand-dark mb-4">Mi Perfil</h3>
+                <p className="text-gray-600">No se ha encontrado un perfil de proveedor asociado a esta cuenta.</p>
+            </div>
+        );
+    }
 
     return (
         <div className="bg-white p-8 rounded-lg shadow-sm">
-            <h3 className="text-2xl font-serif font-bold text-brand-dark mb-6">Editar Perfil de la Empresa</h3>
-            
-            <form onSubmit={handleSave} className="space-y-8">
-                {/* Información de la Empresa */}
-                <div className="p-6 border border-gray-200 rounded-lg">
-                    <h4 className="text-lg font-semibold text-brand-dark mb-4">Información de la Empresa</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="companyName" className="block text-sm font-medium text-brand-dark mb-1">Nombre de la Empresa</label>
-                            <input
-                                type="text"
-                                id="companyName"
-                                name="companyName"
-                                value={profile.companyName}
-                                onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="category" className="block text-sm font-medium text-brand-dark mb-1">Categoría</label>
-                            <select
-                                id="category"
-                                name="category"
-                                value={profile.category}
-                                onChange={handleInputChange}
-                                className="w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white"
-                            >
-                                {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Descripción */}
-                 <div className="p-6 border border-gray-200 rounded-lg">
-                    <h4 className="text-lg font-semibold text-brand-dark mb-4">Sobre tu negocio</h4>
+            <h3 className="text-2xl font-serif font-bold text-brand-dark mb-6">Mi Perfil de Proveedor</h3>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-brand-dark mb-1">Descripción para tu perfil público</label>
-                        <textarea
-                            id="description"
-                            name="description"
-                            rows={5}
-                            value={profile.description}
-                            onChange={handleInputChange}
-                            className="w-full p-2 border border-gray-300 rounded-md shadow-sm"
-                        />
+                        <label htmlFor="name" className="block text-sm font-medium text-gray-700">Nombre de la Empresa</label>
+                        <input type="text" name="name" id="name" value={formData.name || ''} onChange={handleInputChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
+                    </div>
+                    <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email de Contacto</label>
+                        <input type="email" name="email" id="email" value={formData.email || ''} readOnly className="mt-1 block w-full p-2 border border-gray-300 rounded-md bg-gray-100" />
+                    </div>
+                    <div>
+                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">Categoría</label>
+                        <select name="category" id="category" value={formData.category || ''} onChange={handleInputChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                            {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="location" className="block text-sm font-medium text-gray-700">Región</label>
+                        <select name="location" id="location" value={formData.location || ''} onChange={handleInputChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md">
+                            {CHILE_REGIONS.map(reg => <option key={reg} value={reg}>{reg}</option>)}
+                        </select>
+                    </div>
+                    <div>
+                        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Teléfono</label>
+                        <input type="tel" name="phone" id="phone" value={formData.phone || ''} onChange={handleInputChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" />
                     </div>
                 </div>
 
-                {/* Información de Contacto */}
-                <div className="p-6 border border-gray-200 rounded-lg">
-                    <h4 className="text-lg font-semibold text-brand-dark mb-4">Información de Contacto</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label htmlFor="phone" className="flex items-center text-sm font-medium text-brand-dark mb-1">
-                                <PhoneIcon className="h-4 w-4 mr-2 text-gray-400"/> Teléfono
-                            </label>
-                            <input type="tel" id="phone" name="phone" value={profile.phone} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm" />
-                        </div>
-                        <div>
-                            <label htmlFor="email" className="flex items-center text-sm font-medium text-brand-dark mb-1">
-                                <MailIcon className="h-4 w-4 mr-2 text-gray-400"/> Correo Electrónico
-                            </label>
-                            <input type="email" id="email" name="email" value={profile.email} onChange={handleInputChange} className="w-full p-2 border border-gray-300 rounded-md shadow-sm" />
-                        </div>
-                    </div>
+                <div>
+                    <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descripción de tu Servicio</label>
+                    <textarea name="description" id="description" rows={4} value={(formData as any).description || ''} onChange={handleInputChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md"></textarea>
                 </div>
                 
-                 {/* Galería de Fotos */}
-                <div className="p-6 border border-gray-200 rounded-lg">
-                    <div className="flex justify-between items-center mb-4">
-                        <h4 className="text-lg font-semibold text-brand-dark">Galería de Fotos</h4>
-                        <button type="button" className="text-sm text-brand-primary hover:underline flex items-center font-medium">
-                            <EditIcon className="h-4 w-4 mr-1"/> Editar Galería
-                        </button>
-                    </div>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {profile.gallery.map((url, index) => (
-                            <img key={index} src={url} alt={`Foto de galería ${index + 1}`} className="w-full h-32 object-cover rounded-md" />
-                        ))}
-                         <button type="button" className="w-full h-32 border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center text-gray-500 hover:bg-gray-50">
-                            <PlusCircleIcon className="h-8 w-8 mb-1"/>
-                            <span className="text-sm">Añadir Foto</span>
-                        </button>
-                    </div>
-                </div>
-
-
-                {/* Guardar Cambios */}
-                <div className="flex items-center justify-end gap-4">
-                     {isSaved && <p className="text-green-600 font-semibold transition-opacity duration-300">¡Cambios guardados con éxito!</p>}
-                    <button type="submit" className="bg-brand-primary hover:bg-brand-accent text-white font-bold py-2 px-8 rounded-md transition-colors duration-300">
-                        Guardar Cambios
+                <div className="flex justify-end items-center gap-4">
+                    {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
+                    <button type="submit" disabled={isSaving} className="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-brand-accent disabled:bg-gray-400">
+                        {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                     </button>
                 </div>
             </form>

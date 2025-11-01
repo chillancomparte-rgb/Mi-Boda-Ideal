@@ -1,5 +1,7 @@
-import React, { useRef } from 'react';
-import type { Page, Vendor, RealWedding, Inspiration } from '../types';
+import React, { useRef, useState, useEffect } from 'react';
+import type { Page, Vendor, RealWedding, Inspiration, HeroSlide } from '../types';
+import { db } from '../services/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 import { CameraIcon } from '../components/icons/CameraIcon';
 import { RingIcon } from '../components/icons/RingIcon';
 import { CalendarIcon } from '../components/icons/CalendarIcon';
@@ -10,7 +12,9 @@ import RealWeddingCard from '../components/RealWeddingCard';
 import InspirationCard from '../components/InspirationCard';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { ArrowRightIcon } from '../components/icons/ArrowRightIcon';
-
+import { ChevronLeftIcon } from '../components/icons/ChevronLeftIcon';
+import { ChevronRightIcon } from '../components/icons/ChevronRightIcon';
+import Spinner from '../components/Spinner';
 
 interface HomePageProps {
     navigate: (page: Page, data?: Vendor | Inspiration) => void;
@@ -75,6 +79,53 @@ const Carousel: React.FC<{ children: React.ReactNode, itemWidthClass: string }> 
 
 
 const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
+    const [slides, setSlides] = useState<Omit<HeroSlide, 'id'>[]>([]);
+    const [currentSlide, setCurrentSlide] = useState(0);
+    const [isLoadingHero, setIsLoadingHero] = useState(true);
+
+    useEffect(() => {
+        const fetchSlides = async () => {
+            setIsLoadingHero(true);
+            try {
+                const docRef = doc(db, 'site_config', 'hero_slider');
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists() && docSnap.data().slides) {
+                    setSlides(docSnap.data().slides);
+                } else {
+                    // Fallback to a default slide
+                    setSlides([{
+                        imageUrl: 'https://images.unsplash.com/photo-1523438097201-512ae7d59c44?q=80&w=1600&h=900&auto=format&fit=crop',
+                        title: 'La Boda de tus Sueños Comienza Aquí',
+                        subtitle: 'Tu guía completa para planificar el día más feliz de tu vida, paso a paso.'
+                    }]);
+                }
+            } catch (error) {
+                console.error("Error fetching hero slides:", error);
+                 setSlides([{
+                    imageUrl: 'https://images.unsplash.com/photo-1523438097201-512ae7d59c44?q=80&w=1600&h=900&auto=format&fit=crop',
+                    title: 'La Boda de tus Sueños Comienza Aquí',
+                    subtitle: 'Tu guía completa para planificar el día más feliz de tu vida, paso a paso.'
+                }]);
+            } finally {
+                setIsLoadingHero(false);
+            }
+        };
+        fetchSlides();
+    }, []);
+
+    useEffect(() => {
+        if (slides.length > 1) {
+            const timer = setTimeout(() => {
+                const nextSlide = currentSlide === slides.length - 1 ? 0 : currentSlide + 1;
+                setCurrentSlide(nextSlide);
+            }, 5000); // Change slide every 5 seconds
+            return () => clearTimeout(timer);
+        }
+    }, [currentSlide, slides]);
+
+    const next = () => setCurrentSlide(currentSlide === slides.length - 1 ? 0 : currentSlide + 1);
+    const prev = () => setCurrentSlide(currentSlide === 0 ? slides.length - 1 : currentSlide - 1);
+
 
     const features = [
         {
@@ -107,21 +158,45 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
                 description="Planifica la boda de tus sueños con Mi Boda Ideal. Encuentra proveedores, inspiración, herramientas de presupuesto, checklist y más. Todo en un solo lugar."
             />
             {/* Hero Section */}
-            <section
-                className="relative h-[60vh] bg-cover bg-center flex items-center justify-center text-center text-white"
-                style={{ backgroundImage: "url('https://images.unsplash.com/photo-1523438097201-512ae7d59c44?q=80&w=1600&h=900&auto=format&fit=crop')" }}
-            >
-                <div className="absolute inset-0 bg-black bg-opacity-50"></div>
-                <div className="relative z-10 px-4">
-                    <h1 className="text-5xl md:text-7xl font-serif font-bold mb-4 drop-shadow-lg">La Boda de tus Sueños Comienza Aquí</h1>
-                    <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">Tu guía completa para planificar el día más feliz de tu vida, paso a paso.</p>
-                    <button 
-                        onClick={() => navigate('vendors')}
-                        className="bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 px-8 rounded-full text-lg transition-transform duration-300 transform hover:scale-105"
-                    >
-                        Empezar a Planificar
-                    </button>
-                </div>
+            <section className="relative h-[60vh] text-white overflow-hidden">
+                {isLoadingHero ? (
+                    <div className="w-full h-full bg-gray-300 flex items-center justify-center"><Spinner /></div>
+                ) : (
+                    <>
+                        <div
+                            className="w-full h-full bg-cover bg-center transition-transform ease-out duration-1000"
+                            style={{ backgroundImage: `url('${slides[currentSlide]?.imageUrl}')` }}
+                        ></div>
+                        <div className="absolute inset-0 bg-black bg-opacity-50"></div>
+                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-4">
+                             <div className="animate-fade-in-down">
+                                <h1 className="text-5xl md:text-7xl font-serif font-bold mb-4 drop-shadow-lg">{slides[currentSlide]?.title}</h1>
+                                <p className="text-xl md:text-2xl mb-8 max-w-3xl mx-auto">{slides[currentSlide]?.subtitle}</p>
+                            </div>
+                            <button 
+                                onClick={() => navigate('vendors')}
+                                className="bg-brand-primary hover:bg-brand-accent text-white font-bold py-3 px-8 rounded-full text-lg transition-transform duration-300 transform hover:scale-105 animate-fade-in"
+                            >
+                                Empezar a Planificar
+                            </button>
+                        </div>
+                        {slides.length > 1 && (
+                             <>
+                                <button onClick={prev} className="absolute top-1/2 left-4 z-20 p-2 bg-white/50 hover:bg-white/80 rounded-full text-brand-dark">
+                                    <ChevronLeftIcon className="h-6 w-6"/>
+                                </button>
+                                <button onClick={next} className="absolute top-1/2 right-4 z-20 p-2 bg-white/50 hover:bg-white/80 rounded-full text-brand-dark">
+                                    <ChevronRightIcon className="h-6 w-6"/>
+                                </button>
+                                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex space-x-2">
+                                    {slides.map((_, i) => (
+                                        <button key={i} onClick={() => setCurrentSlide(i)} className={`h-2 rounded-full transition-all ${currentSlide === i ? 'w-6 bg-white' : 'w-2 bg-white/50'}`}></button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+                    </>
+                )}
             </section>
 
             {/* Features Section */}

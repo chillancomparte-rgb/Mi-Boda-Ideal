@@ -156,6 +156,13 @@ export interface AdminVendor {
     isPremium?: boolean;
 }
 
+export interface HeroSlide {
+    id: string;
+    imageUrl: string;
+    title: string;
+    subtitle: string;
+}
+
 // Tipos para Autenticación
 export interface User {
   uid: string;
