@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import type { HeroSlide } from '../../types';
@@ -8,6 +8,8 @@ import { TrashIcon } from '../icons/TrashIcon';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
 import { XIcon } from '../icons/XIcon';
 import { v4 as uuidv4 } from 'uuid';
+import { uploadImageToHosting } from '../../services/hostingUploadService';
+import { UploadCloudIcon } from '../icons/UploadCloudIcon';
 
 
 const AdminHeroSlider: React.FC = () => {
@@ -16,6 +18,8 @@ const AdminHeroSlider: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
     const [formData, setFormData] = useState<Partial<HeroSlide>>({});
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const sliderDocRef = doc(db, 'site_config', 'hero_slider');
 
@@ -24,7 +28,11 @@ const AdminHeroSlider: React.FC = () => {
         try {
             const docSnap = await getDoc(sliderDocRef);
             if (docSnap.exists() && Array.isArray(docSnap.data().slides)) {
-                setSlides(docSnap.data().slides);
+                // Ensure every slide has a unique ID
+                const slidesWithIds = docSnap.data().slides.map((s: any) => ({ ...s, id: s.id || uuidv4() }));
+                setSlides(slidesWithIds);
+            } else {
+                 await updateDoc(sliderDocRef, { slides: [] });
             }
         } catch (error) {
             console.error("Error fetching slides:", error);
@@ -39,7 +47,7 @@ const AdminHeroSlider: React.FC = () => {
 
     const handleOpenModal = (slide: HeroSlide | null = null) => {
         setEditingSlide(slide);
-        setFormData(slide ? { ...slide } : { title: '', subtitle: '', imageUrl: '' });
+        setFormData(slide ? { ...slide } : { id: uuidv4(), title: '', subtitle: '', imageUrl: '' });
         setIsModalOpen(true);
     };
 
@@ -47,19 +55,42 @@ const AdminHeroSlider: React.FC = () => {
         setIsModalOpen(false);
         setEditingSlide(null);
         setFormData({});
+        setIsUploading(false);
     };
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const imageUrl = await uploadImageToHosting(file);
+            setFormData(prev => ({ ...prev, imageUrl }));
+        } catch (error) {
+            alert('Error al subir la imagen. Por favor, revisa la consola para más detalles.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
     
     const saveSlides = async (updatedSlides: HeroSlide[]) => {
         try {
-            await updateDoc(sliderDocRef, { slides: updatedSlides });
+            // This creates a clean array of plain objects for Firestore
+            const slidesToSave = updatedSlides.map(({ id, imageUrl, title, subtitle }) => ({
+              id,
+              imageUrl: imageUrl || '',
+              title: title || '',
+              subtitle: subtitle || ''
+            }));
+            await updateDoc(sliderDocRef, { slides: slidesToSave });
             setSlides(updatedSlides);
-        } catch (error) {
-            console.error("Error saving slides:", error);
-            alert("Ocurrió un error al guardar los cambios.");
+        } catch (error)            {
+            console.error("Error saving hero slides:", (error as Error).message);
+            alert(`Ocurrió un error al guardar los cambios: ${(error as Error).message}`);
         }
     };
 
@@ -76,7 +107,7 @@ const AdminHeroSlider: React.FC = () => {
             updatedSlides = slides.map(s => s.id === editingSlide.id ? { ...s, ...formData } as HeroSlide : s);
         } else {
             // Create new slide
-            const newSlide: HeroSlide = { ...formData, id: uuidv4() } as HeroSlide;
+            const newSlide: HeroSlide = { ...formData, id: formData.id || uuidv4() } as HeroSlide;
             updatedSlides = [...slides, newSlide];
         }
         await saveSlides(updatedSlides);
@@ -141,13 +172,20 @@ const AdminHeroSlider: React.FC = () => {
                                     <input type="text" name="subtitle" value={formData.subtitle || ''} onChange={handleFormChange} className={modalInputStyle} />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">URL de la Imagen</label>
-                                    <input type="url" name="imageUrl" value={formData.imageUrl || ''} onChange={handleFormChange} className={modalInputStyle} required />
+                                    <label className="block text-sm font-medium text-gray-700">Imagen</label>
+                                    <div className="mt-1 flex items-center gap-4">
+                                        <input type="url" name="imageUrl" placeholder="O pega una URL aquí" value={formData.imageUrl || ''} onChange={handleFormChange} className="flex-grow p-2 border border-gray-300 rounded-md" required />
+                                        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="flex-shrink-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center">
+                                            {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Archivo</>}
+                                        </button>
+                                    </div>
+                                    {formData.imageUrl && <img src={formData.imageUrl} alt="Preview" className="mt-4 w-48 h-auto rounded-md" />}
                                 </div>
                             </div>
                             <div className="p-6 border-t bg-gray-50 flex justify-end gap-4">
                                 <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancelar</button>
-                                <button type="submit" className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent">Guardar</button>
+                                <button type="submit" disabled={isUploading} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent disabled:bg-gray-400">Guardar</button>
                             </div>
                         </form>
                     </div>

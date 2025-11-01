@@ -23,7 +23,7 @@ const RegistrationPage: React.FC<RegistrationPageProps> = ({ navigate }) => {
         city: 'Metropolitana de Santiago',
         website: '',
         instagram: '',
-        gallery: Array(10).fill('')
+        gallery: [] as string[] // Changed to dynamic array
     });
 
     const nextStep = () => setStep(prev => prev + 1);
@@ -33,11 +33,21 @@ const RegistrationPage: React.FC<RegistrationPageProps> = ({ navigate }) => {
         setFormData({ ...formData, [input]: e.target.value });
     };
     
-    const handleGalleryChange = (index: number, value: string) => {
-        const newGallery = [...formData.gallery];
-        newGallery[index] = value;
-        setFormData({...formData, gallery: newGallery});
+    const addGalleryImage = (url: string) => {
+        if (formData.gallery.length >= 10) {
+            alert("Puedes añadir un máximo de 10 imágenes.");
+            return;
+        }
+        setFormData(prev => ({ ...prev, gallery: [...prev.gallery, url] }));
     };
+
+    const removeGalleryImage = (index: number) => {
+        setFormData(prev => ({
+            ...prev,
+            gallery: prev.gallery.filter((_, i) => i !== index)
+        }));
+    };
+
 
     const renderStep = () => {
         switch (step) {
@@ -46,7 +56,7 @@ const RegistrationPage: React.FC<RegistrationPageProps> = ({ navigate }) => {
             case 2:
                 return <Step2Contact nextStep={nextStep} prevStep={prevStep} handleChange={handleChange} values={formData} />;
             case 3:
-                return <Step3Gallery nextStep={nextStep} prevStep={prevStep} handleGalleryChange={handleGalleryChange} values={formData} />;
+                return <Step3Gallery nextStep={nextStep} prevStep={prevStep} addGalleryImage={addGalleryImage} removeGalleryImage={removeGalleryImage} values={formData} />;
             case 4:
                 return <Step4Confirmation values={formData} navigate={navigate} />;
             default:

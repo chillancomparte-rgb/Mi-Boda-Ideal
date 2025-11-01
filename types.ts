@@ -154,6 +154,8 @@ export interface AdminVendor {
     registeredDate: string; // Consider using Firestore Timestamp in real app
     status: VendorStatus;
     isPremium?: boolean;
+    // FIX: Add gallery property to match usage in VendorProfile.tsx
+    gallery?: string[];
 }
 
 export interface HeroSlide {
