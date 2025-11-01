@@ -10,6 +10,7 @@ export type Page =
     | 'vendor-profile'
     | 'registration'
     | 'vendorDashboard'
+    | 'admin' // Nuevo tipo para el panel de admin
     // Vendor sub-pages from Header
     | 'bride-dresses'
     | 'bride-accessories'
@@ -20,28 +21,28 @@ export type Page =
     | 'groom-suits'
     // Vendor categories as pages - generated from VENDOR_CATEGORIES
     | 'salones-de-eventos'
-    | 'fotografos'
+    | 'fotógrafos'
     | 'banquetes'
-    | 'musica-y-dj'
+    | 'música-y-dj'
     | 'vestidos-de-novia'
-    | 'decoracion'
-    | 'floristerias'
-    | 'pastelerias-de-boda'
+    | 'decoración'
+    | 'floristerías'
+    | 'pastelerías-de-boda'
     | 'trajes-de-novio'
-    | 'joyerias'
+    | 'joyerías'
     | 'autos-de-matrimonio'
     | 'partes-de-matrimonio'
     | 'wedding-planners'
     | 'cotillon-y-recuerdos'
     | 'luna-de-miel'
     | 'coros-y-musica-para-ceremonia'
-    | 'animacion-de-eventos'
+    | 'animación-de-eventos'
     | 'clases-de-baile'
     | 'carpas-y-toldos'
     | 'food-trucks-y-carritos'
     | 'accesorios-de-novia'
     | 'zapatos-de-novia'
-    | 'lenceria'
+    | 'lencería'
     | (string & {});
 
 
@@ -127,4 +128,42 @@ export interface ChatMessage {
 export interface FAQItem {
     question: string;
     answer: string;
+}
+
+// Tipos para el Panel de Administrador
+export type VendorStatus = 'Aprobado' | 'Pendiente' | 'Rechazado';
+
+export interface AdminUser {
+    id: string;
+    name: string;
+    email: string;
+    registeredDate: string;
+    weddingDate?: string;
+    location: string;
+}
+
+export interface AdminVendor {
+    id: string;
+    name: string;
+    category: string;
+    location: string;
+    email: string;
+    registeredDate: string;
+    status: VendorStatus;
+    isPremium?: boolean;
+}
+
+// Tipos para Autenticación
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
+
+export interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signUp: (email: string, password: string) => Promise<any>;
+  logIn: (email: string, password: string) => Promise<any>;
+  logOut: () => Promise<void>;
 }

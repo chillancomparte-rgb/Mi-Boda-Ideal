@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { Inspiration } from '../types';
-import { generateInspirationStream } from '../services/geminiService';
+import { getInspiration } from '../services/mockDataService';
 import InspirationCard from '../components/InspirationCard';
 import Spinner from '../components/Spinner';
 import SeoMeta from '../components/SeoMeta';
@@ -18,23 +18,13 @@ const InspirationPage: React.FC<InspirationPageProps> = ({ onInspirationSelect }
         const fetchInspiration = async () => {
             setIsLoading(true);
             setError(null);
-            setInspirationItems([]); // Clear previous items for new stream
             try {
-                const stream = generateInspirationStream();
-                let firstItemLoaded = false;
-                for await (const item of stream) {
-                    if (!firstItemLoaded) {
-                        setIsLoading(false); // Stop spinner after first item arrives
-                        firstItemLoaded = true;
-                    }
-                    setInspirationItems(prev => [...prev, item]);
-                }
-                if (!firstItemLoaded) { // Handle cases where stream is empty
-                     setIsLoading(false);
-                }
+                const items = await getInspiration();
+                setInspirationItems(items);
             } catch (err) {
                 setError("No se pudo cargar la inspiración. Inténtalo de nuevo.");
                 console.error(err);
+            } finally {
                 setIsLoading(false);
             }
         };

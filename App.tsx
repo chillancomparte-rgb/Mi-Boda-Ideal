@@ -10,6 +10,8 @@ import CommunityPage from './pages/CommunityPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorProfilePage from './pages/VendorProfilePage';
 import RegistrationPage from './pages/RegistrationPage';
+import AdminPage from './pages/AdminPage';
+import AuthModal from './components/modals/AuthModal'; // Importar el modal
 import type { Page, Vendor, Inspiration } from './types';
 import { VENDOR_CATEGORIES } from './constants';
 
@@ -20,6 +22,16 @@ const App: React.FC = () => {
     const [currentCategory, setCurrentCategory] = useState<string>('');
     const [persistentRegion, setPersistentRegion] = useState<string | null>(null);
     
+    // Auth Modal State
+    const [authModalState, setAuthModalState] = useState({ isOpen: false, view: 'login' as 'login' | 'signup' });
+
+    const openAuthModal = (view: 'login' | 'signup') => {
+        setAuthModalState({ isOpen: true, view });
+    };
+    const closeAuthModal = () => {
+        setAuthModalState({ isOpen: false, view: 'login' });
+    };
+
     const [favorites, setFavorites] = useState<Vendor[]>(() => {
         try {
             const savedFavorites = localStorage.getItem('miBodaIdealFavorites');
@@ -137,25 +149,33 @@ const App: React.FC = () => {
                 return <CommunityPage />;
             case 'vendor-profile':
                 return selectedVendor ? <VendorProfilePage vendor={selectedVendor} onBack={() => navigate('vendors', undefined, currentCategory)} favorites={favorites} onToggleFavorite={toggleFavorite} onVendorSelect={handleVendorSelect} /> : <VendorsPage {...vendorPageProps} />;
-            case 'registration': // Add registration page route
+            case 'registration': // This is now for vendors only
                 return <RegistrationPage navigate={navigate} />;
             default:
                 return <HomePage navigate={navigate} />;
         }
     };
     
-    // The vendor dashboard has its own layout and shouldn't have the main header/footer
+    // El panel de proveedor y de admin tienen su propio layout.
     if (currentPage === 'vendorDashboard') {
         return <VendorDashboardPage navigate={navigate} />;
+    }
+    if (currentPage === 'admin') {
+        return <AdminPage navigate={navigate} />;
     }
 
     return (
         <div className="flex flex-col min-h-screen bg-brand-light font-sans">
-            <Header navigate={navigate} currentPage={currentPage} />
+            <Header navigate={navigate} currentPage={currentPage} onLoginClick={() => openAuthModal('login')} onSignupClick={() => openAuthModal('signup')}/>
             <main className="flex-grow">
                 {renderPage()}
             </main>
             <Footer />
+            <AuthModal 
+                isOpen={authModalState.isOpen}
+                onClose={closeAuthModal}
+                initialView={authModalState.view}
+            />
         </div>
     );
 };

@@ -17,6 +17,7 @@ import VendorCampus from '../components/vendor/VendorCampus';
 import VendorSettings from '../components/vendor/VendorSettings';
 import SeoMeta from '../components/SeoMeta';
 import type { Page } from '../types';
+import PremiumFeatureLock from '../components/PremiumFeatureLock';
 
 type VendorPage = 'dashboard' | 'profile' | 'messages' | 'services' | 'billing' | 'campus' | 'settings';
 
@@ -26,6 +27,10 @@ interface VendorDashboardPageProps {
 
 const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) => {
     const [activePage, setActivePage] = useState<VendorPage>('dashboard');
+    
+    // Simulación del estado premium del usuario. En una app real, vendría de la base de datos.
+    // Se establece en `false` para demostrar las funcionalidades bloqueadas.
+    const isPremiumUser = false;
 
     const menuItems: { id: VendorPage, label: string; icon: React.ReactElement }[] = [
         { id: 'dashboard', label: 'Dashboard', icon: <HomeIcon className="h-5 w-5" /> },
@@ -40,7 +45,7 @@ const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) =
     const renderContent = () => {
         switch (activePage) {
             case 'dashboard':
-                return <DashboardHome />;
+                return <DashboardHome isPremiumUser={isPremiumUser} />;
             case 'profile':
                 return <VendorProfile />;
             case 'messages':
@@ -50,11 +55,12 @@ const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) =
             case 'billing':
                 return <VendorBilling />;
             case 'campus':
-                return <VendorCampus />;
+                // Campus es una funcionalidad premium
+                return isPremiumUser ? <VendorCampus /> : <PremiumFeatureLock />;
             case 'settings':
                 return <VendorSettings />;
             default:
-                return <DashboardHome />;
+                return <DashboardHome isPremiumUser={isPremiumUser}/>;
         }
     };
 

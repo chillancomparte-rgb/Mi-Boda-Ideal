@@ -12,8 +12,7 @@ import VendorReviews from '../components/vendor/VendorReviews';
 import ChatWidget from '../components/vendor/ChatWidget';
 import VendorCard from '../components/VendorCard';
 import Accordion from '../components/Accordion';
-import { generateVendorFAQs } from '../services/geminiService';
-import { generateVendorsStream } from '../services/geminiService';
+import { getVendorFAQs, getSimilarVendors } from '../services/mockDataService';
 
 
 interface VendorProfilePageProps {
@@ -34,7 +33,7 @@ const VendorProfilePage: React.FC<VendorProfilePageProps> = ({ vendor, onBack, f
         const fetchFaqs = async () => {
             setIsLoadingFaqs(true);
             try {
-                const generatedFaqs = await generateVendorFAQs(vendor.name, vendor.category);
+                const generatedFaqs = await getVendorFAQs(vendor.name, vendor.category);
                 setFaqs(generatedFaqs);
             } catch(e) {
                 console.error("Failed to fetch FAQs", e);
@@ -44,27 +43,8 @@ const VendorProfilePage: React.FC<VendorProfilePageProps> = ({ vendor, onBack, f
         };
 
         const fetchSimilarVendors = async () => {
-            // FIX: Correctly extract the region from the vendor's location string.
-            // Example: "Providencia, Metropolitana de Santiago" -> "Metropolitana de Santiago"
-            const locationParts = vendor.location.split(',');
-            const region = locationParts.length > 1 ? locationParts[1].trim() : vendor.city;
-            
-            setSimilarVendors([]); // Clear previous similar vendors
-            
-            try {
-                const stream = generateVendorsStream(vendor.category, region, [vendor.name]);
-                const vendors: Vendor[] = [];
-                let count = 0;
-                for await (const similar of stream) {
-                    vendors.push(similar);
-                    count++;
-                    if (count >= 4) break;
-                }
-                setSimilarVendors(vendors);
-            } catch (e) {
-                console.error("Failed to fetch similar vendors", e);
-                // Optionally set an error state here
-            }
+            const similar = await getSimilarVendors(vendor);
+            setSimilarVendors(similar);
         };
 
         fetchFaqs();
@@ -182,16 +162,15 @@ const VendorProfilePage: React.FC<VendorProfilePageProps> = ({ vendor, onBack, f
                         <ChatWidget vendor={vendor} />
                     </aside>
                 </div>
-
-                 {/* Similar Vendors */}
+                
                 {similarVendors.length > 0 && (
-                     <section className="mt-20">
-                        <h2 className="text-3xl font-serif font-bold text-brand-dark text-center mb-8">Proveedores Similares en la Región</h2>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+                    <section id="similares" className="mt-16 pt-12 border-t">
+                        <h2 className="text-3xl font-serif font-bold text-brand-dark mb-8 text-center">Proveedores Similares</h2>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
                             {similarVendors.map(v => (
                                 <VendorCard 
-                                    key={v.name} 
-                                    vendor={v} 
+                                    key={v.name}
+                                    vendor={v}
                                     onVendorSelect={onVendorSelect}
                                     isFavorite={favorites.some(fav => fav.name === v.name)}
                                     onToggleFavorite={onToggleFavorite}

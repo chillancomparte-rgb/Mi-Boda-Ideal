@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { BudgetItem } from '../../types';
-import { generateBudgetTemplate } from '../../services/geminiService';
+import { getBudgetTemplate } from '../../services/mockDataService';
 import Spinner from '../Spinner';
 import { RefreshCwIcon } from '../icons/RefreshCwIcon';
 
@@ -12,14 +12,19 @@ const BudgetTool: React.FC = () => {
 
      const loadBudget = async (forceRefetch = false) => {
         setIsLoading(true);
-        const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedItems && !forceRefetch) {
-            setItems(JSON.parse(savedItems));
-        } else {
-            const budget = await generateBudgetTemplate();
-            setItems(budget);
+        try {
+            const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedItems && !forceRefetch) {
+                setItems(JSON.parse(savedItems));
+            } else {
+                const budget = await getBudgetTemplate();
+                setItems(budget);
+            }
+        } catch (error) {
+            console.error("Error loading budget", error);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     useEffect(() => {

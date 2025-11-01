@@ -1,17 +1,29 @@
 import React from 'react';
 import type { Page } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import { WeddingRingIcon } from './icons/WeddingRingIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';
 import { VENDOR_CATEGORIES } from '../constants';
 import { HeartIcon } from './icons/HeartIcon';
 import { UserIcon } from './icons/UserIcon';
+import { ShieldIcon } from './icons/ShieldIcon';
+import { LogoutIcon } from './icons/LogoutIcon';
+import Spinner from './Spinner';
 
 interface HeaderProps {
     navigate: (page: Page, vendor?: any, category?: string) => void;
     currentPage: Page;
+    onLoginClick: () => void;
+    onSignupClick: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ navigate, currentPage }) => {
+const Header: React.FC<HeaderProps> = ({ navigate, currentPage, onLoginClick, onSignupClick }) => {
+    const { user, loading, logOut } = useAuth();
+
+    const handleLogout = async () => {
+        await logOut();
+        navigate('home');
+    };
 
     const categoryToPage = (category: string): Page => {
         return category.toLowerCase().replace(/ y | & /g, '-').replace(/ /g, '-') as Page;
@@ -104,44 +116,53 @@ const Header: React.FC<HeaderProps> = ({ navigate, currentPage }) => {
                             className="text-brand-dark hover:text-brand-primary font-semibold py-2 px-4 rounded-full text-sm transition-colors flex items-center border border-transparent hover:bg-gray-50"
                         >
                             <UserIcon className="h-5 w-5 mr-2" />
-                            Mi Cuenta
+                            {loading ? '...' : (user ? 'Hola!' : 'Mi Cuenta')}
                             <ChevronDownIcon className="h-4 w-4 ml-1" />
                         </button>
                         <div className="absolute right-0 pt-2 w-60 bg-white rounded-md shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 invisible group-hover:visible z-10">
-                            <div className="py-2 bg-white rounded-md">
-                                <div className="px-4 py-2">
-                                    <p className="text-sm font-bold text-brand-dark">Parejas</p>
-                                    <p className="text-xs text-brand-dark opacity-70">Planifica tu boda soñada</p>
-                                </div>
-                                <a
-                                    href="#"
-                                    onClick={(e) => { e.preventDefault(); navigate('tools'); }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary"
-                                >
-                                    Mi Panel de Boda
-                                </a>
-                                <div className="border-t my-2 mx-4"></div>
-                                <div className="px-4 py-2">
-                                    <p className="text-sm font-bold text-brand-dark">Proveedores</p>
-                                    <p className="text-xs text-brand-dark opacity-70">Gestiona tu negocio</p>
-                                </div>
-                                <a
-                                    href="#"
-                                    onClick={(e) => { e.preventDefault(); navigate('vendorDashboard'); }}
-                                    className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary"
-                                >
-                                    Acceder a mi Panel
-                                </a>
-                                <div className="px-4 pt-2 pb-1">
-                                    <a
-                                        href="#"
-                                        onClick={(e) => { e.preventDefault(); navigate('registration'); }}
-                                        className="block w-full text-center bg-brand-primary text-white py-2 text-sm font-bold rounded-md hover:bg-brand-accent transition-colors"
-                                    >
-                                        Regístrate gratis
+                             {loading ? (
+                                <div className="p-4"><Spinner /></div>
+                            ) : user ? (
+                                <div className="py-2 bg-white rounded-md">
+                                    <div className="px-4 py-2 border-b">
+                                        <p className="text-sm font-bold text-brand-dark truncate">{user.email}</p>
+                                    </div>
+                                    <a href="#" onClick={(e) => { e.preventDefault(); navigate('tools'); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                        Mi Panel de Boda
                                     </a>
+                                    <button onClick={handleLogout} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700">
+                                        <LogoutIcon className="h-4 w-4 mr-2" />
+                                        Cerrar Sesión
+                                    </button>
                                 </div>
-                            </div>
+                            ) : (
+                                <div className="py-2 bg-white rounded-md">
+                                    <div className="px-4 py-2">
+                                        <p className="text-sm font-bold text-brand-dark">Parejas</p>
+                                        <p className="text-xs text-brand-dark opacity-70">Planifica tu boda soñada</p>
+                                    </div>
+                                    <button onClick={onLoginClick} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                        Iniciar Sesión
+                                    </button>
+                                    <div className="border-t my-2 mx-4"></div>
+                                    <div className="px-4 py-2">
+                                        <p className="text-sm font-bold text-brand-dark">Proveedores</p>
+                                        <p className="text-xs text-brand-dark opacity-70">Gestiona tu negocio</p>
+                                    </div>
+                                    <a href="#" onClick={(e) => { e.preventDefault(); navigate('vendorDashboard'); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                        Acceder a mi Panel
+                                    </a>
+                                     <a href="#" onClick={(e) => { e.preventDefault(); navigate('admin'); }} className="flex items-center w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                        <ShieldIcon className="h-4 w-4 mr-2" />
+                                        Panel de Administrador
+                                    </a>
+                                    <div className="px-4 pt-2 pb-1">
+                                        <button onClick={onSignupClick} className="block w-full text-center bg-brand-primary text-white py-2 text-sm font-bold rounded-md hover:bg-brand-accent transition-colors">
+                                            Regístrate gratis
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import type { ChecklistItem } from '../../types';
-import { generateChecklist } from '../../services/geminiService';
+import { getChecklist } from '../../services/mockDataService';
 import Spinner from '../Spinner';
 import { RefreshCwIcon } from '../icons/RefreshCwIcon';
 
@@ -12,14 +12,19 @@ const ChecklistTool: React.FC = () => {
 
     const loadChecklist = async (forceRefetch = false) => {
         setIsLoading(true);
-        const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedItems && !forceRefetch) {
-            setItems(JSON.parse(savedItems));
-        } else {
-            const checklist = await generateChecklist();
-            setItems(checklist);
+        try {
+            const savedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+            if (savedItems && !forceRefetch) {
+                setItems(JSON.parse(savedItems));
+            } else {
+                const checklist = await getChecklist();
+                setItems(checklist);
+            }
+        } catch (error) {
+            console.error("Error loading checklist", error);
+        } finally {
+            setIsLoading(false);
         }
-        setIsLoading(false);
     };
 
     useEffect(() => {
