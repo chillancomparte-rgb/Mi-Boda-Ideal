@@ -12,6 +12,7 @@ import CommunityPage from './pages/CommunityPage';
 import VendorDashboardPage from './pages/VendorDashboardPage';
 import VendorProfilePage from './pages/VendorProfilePage';
 import RegistrationPage from './pages/RegistrationPage';
+import ClientRegistrationPage from './pages/ClientRegistrationPage';
 import AdminPage from './pages/AdminPage';
 import AuthModal from './components/modals/AuthModal';
 import type { Page, Vendor, Inspiration } from './types';
@@ -179,6 +180,9 @@ const App: React.FC = () => {
                 break;
             case 'registration':
                 pageComponent = <RegistrationPage navigate={navigate} />;
+                break;
+            case 'client-registration':
+                pageComponent = <ClientRegistrationPage navigate={navigate} />;
                 break;
             default:
                 pageComponent = <HomePage navigate={navigate} />;

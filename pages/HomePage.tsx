@@ -89,7 +89,7 @@ const HomePage: React.FC<HomePageProps> = ({ navigate }) => {
             try {
                 const docRef = doc(db, 'site_config', 'hero_slider');
                 const docSnap = await getDoc(docRef);
-                if (docSnap.exists() && docSnap.data().slides) {
+                if (docSnap.exists() && Array.isArray(docSnap.data().slides) && docSnap.data().slides.length > 0) {
                     setSlides(docSnap.data().slides);
                 } else {
                     // Fallback to a default slide

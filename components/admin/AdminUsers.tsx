@@ -1,13 +1,17 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { AdminUser } from '../../types';
 import { db } from '../../services/firebase';
 import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
+import { auth } from '../../services/firebase';
+import { sendPasswordResetEmail } from 'firebase/auth';
 import { TrashIcon } from '../icons/TrashIcon';
 import { EditIcon } from '../icons/EditIcon';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
 import Spinner from '../Spinner';
 import { XIcon } from '../icons/XIcon';
 import { CHILE_REGIONS } from '../../constants';
+import { uploadImageToHosting } from '../../services/hostingUploadService';
+import { UploadCloudIcon } from '../icons/UploadCloudIcon';
 
 const AdminUsers: React.FC = () => {
     const [users, setUsers] = useState<AdminUser[]>([]);
@@ -17,6 +21,8 @@ const AdminUsers: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
     const [formData, setFormData] = useState<Partial<AdminUser>>({});
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchUsers = async () => {
         setIsLoading(true);
@@ -48,6 +54,22 @@ const AdminUsers: React.FC = () => {
         setIsModalOpen(false);
         setEditingUser(null);
         setFormData({});
+        setIsUploading(false);
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const imageUrl = await uploadImageToHosting(file);
+            setFormData(prev => ({ ...prev, avatarUrl: imageUrl }));
+        } catch (error) {
+            alert('Error al subir la imagen. Por favor, revisa la consola para más detalles.');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -61,6 +83,7 @@ const AdminUsers: React.FC = () => {
             return;
         }
 
+        setIsLoading(true);
         try {
             if (editingUser) {
                 // Update
@@ -75,6 +98,8 @@ const AdminUsers: React.FC = () => {
         } catch (error) {
             console.error("Error saving user: ", error);
             alert("Ocurrió un error al guardar.");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -95,6 +120,18 @@ const AdminUsers: React.FC = () => {
                 setUsers(users.filter(u => u.id !== id));
             } catch (error) {
                 console.error("Error deleting user: ", error);
+            }
+        }
+    };
+
+    const handlePasswordReset = async (email: string) => {
+        if (window.confirm(`¿Estás seguro de que quieres enviar un correo de restablecimiento de contraseña a ${email}?`)) {
+            try {
+                await sendPasswordResetEmail(auth, email);
+                alert(`Correo de restablecimiento de contraseña enviado a ${email}.`);
+            } catch (error) {
+                console.error("Error sending password reset email: ", error);
+                alert(`Error al enviar el correo de restablecimiento: ${(error as Error).message}`);
             }
         }
     };
@@ -147,24 +184,37 @@ const AdminUsers: React.FC = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Registro</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Boda</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo de Registro</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredUsers.map(user => (
                                 <tr key={user.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{user.name}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 h-10 w-10">
+                                                <img className="h-10 w-10 rounded-full object-cover" src={user.avatarUrl || 'https://via.placeholder.com/150'} alt={user.name} />
+                                            </div>
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium text-gray-900">{user.name}</div>
+                                                <div className="text-sm text-gray-500">{user.email}</div>
+                                            </div>
+                                        </div>
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || 'No ingresado'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.registeredDate).toLocaleDateString()}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.weddingDate ? new Date(user.weddingDate).toLocaleDateString() : 'No definida'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.registrationType || 'email'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-3">
+                                            <button onClick={() => handlePasswordReset(user.email)} className="text-gray-400 hover:text-orange-500" title="Restablecer Contraseña">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M12 11V7"></path><path d="M12 15h.01"></path></svg>
+                                            </button>
                                             <button onClick={() => handleOpenModal(user)} className="text-gray-400 hover:text-blue-600" title="Editar Usuario">
                                                 <EditIcon className="h-5 w-5"/>
                                             </button>
@@ -211,10 +261,20 @@ const AdminUsers: React.FC = () => {
                                     <label className="block text-sm font-medium text-gray-700">Fecha de Boda (opcional)</label>
                                     <input type="date" name="weddingDate" value={formData.weddingDate || ''} onChange={handleFormChange} className={modalInputStyle} />
                                 </div>
+                                <div className="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">Avatar del Usuario</label>
+                                    <div className="mt-1 flex items-center gap-4">
+                                        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
+                                            {isUploading ? <Spinner size="sm" /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
+                                        </button>
+                                    </div>
+                                    {formData.avatarUrl && <img src={formData.avatarUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}
+                                </div>
                             </div>
                             <div className="p-6 border-t bg-gray-50 flex justify-end gap-4">
                                 <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancelar</button>
-                                <button type="submit" className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent">Guardar</button>
+                                <button type="submit" disabled={isUploading} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent disabled:bg-gray-400">Guardar</button>
                             </div>
                         </form>
                     </div>

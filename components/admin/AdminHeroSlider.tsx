@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../services/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import type { HeroSlide } from '../../types';
 import Spinner from '../Spinner';
 import { EditIcon } from '../icons/EditIcon';
@@ -26,13 +26,14 @@ const AdminHeroSlider: React.FC = () => {
     const fetchSlides = async () => {
         setIsLoading(true);
         try {
+            console.log('Fetching slides from:', sliderDocRef.path);
             const docSnap = await getDoc(sliderDocRef);
             if (docSnap.exists() && Array.isArray(docSnap.data().slides)) {
-                // Ensure every slide has a unique ID
                 const slidesWithIds = docSnap.data().slides.map((s: any) => ({ ...s, id: s.id || uuidv4() }));
                 setSlides(slidesWithIds);
             } else {
-                 await updateDoc(sliderDocRef, { slides: [] });
+                 console.log('Slider document does not exist or slides is not an array, creating it.');
+                 await setDoc(sliderDocRef, { slides: [] }, { merge: true });
             }
         } catch (error) {
             console.error("Error fetching slides:", error);
@@ -47,7 +48,7 @@ const AdminHeroSlider: React.FC = () => {
 
     const handleOpenModal = (slide: HeroSlide | null = null) => {
         setEditingSlide(slide);
-        setFormData(slide ? { ...slide } : { id: uuidv4(), title: '', subtitle: '', imageUrl: '' });
+        setFormData(slide ? { ...slide } : { id: uuidv4(), title: '', subtitle: '' });
         setIsModalOpen(true);
     };
 
@@ -79,16 +80,22 @@ const AdminHeroSlider: React.FC = () => {
     
     const saveSlides = async (updatedSlides: HeroSlide[]) => {
         try {
-            // This creates a clean array of plain objects for Firestore
             const slidesToSave = updatedSlides.map(({ id, imageUrl, title, subtitle }) => ({
-              id,
-              imageUrl: imageUrl || '',
-              title: title || '',
-              subtitle: subtitle || ''
+                id,
+                imageUrl: imageUrl || 'https://placehold.co/150',
+                title: title || '',
+                subtitle: subtitle || '',
             }));
-            await updateDoc(sliderDocRef, { slides: slidesToSave });
+    
+            const docSnap = await getDoc(sliderDocRef);
+            if (docSnap.exists()) {
+                await updateDoc(sliderDocRef, { slides: slidesToSave });
+            } else {
+                await setDoc(sliderDocRef, { slides: slidesToSave });
+            }
+    
             setSlides(updatedSlides);
-        } catch (error)            {
+        } catch (error) {
             console.error("Error saving hero slides:", (error as Error).message);
             alert(`Ocurrió un error al guardar los cambios: ${(error as Error).message}`);
         }
@@ -96,7 +103,7 @@ const AdminHeroSlider: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.title || !formData.imageUrl) {
+        if (!formData.title) {
             alert("Título y URL de la imagen son requeridos.");
             return;
         }
@@ -139,7 +146,7 @@ const AdminHeroSlider: React.FC = () => {
                 {slides.map(slide => (
                     <div key={slide.id} className="border rounded-lg p-4 flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                            <img src={slide.imageUrl} alt={slide.title} className="w-24 h-16 object-cover rounded-md"/>
+                            <img src={slide.imageUrl || 'https://placehold.co/150'} alt={slide.title} className="w-24 h-16 object-cover rounded-md"/>
                             <div>
                                 <h3 className="font-semibold text-gray-900">{slide.title}</h3>
                                 <p className="text-sm text-gray-500 truncate max-w-md">{slide.subtitle}</p>
@@ -174,9 +181,9 @@ const AdminHeroSlider: React.FC = () => {
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700">Imagen</label>
                                     <div className="mt-1 flex items-center gap-4">
-                                        <input type="url" name="imageUrl" placeholder="O pega una URL aquí" value={formData.imageUrl || ''} onChange={handleFormChange} className="flex-grow p-2 border border-gray-300 rounded-md" required />
+                                        
                                         <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="flex-shrink-0 bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center">
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
                                             {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Archivo</>}
                                         </button>
                                     </div>

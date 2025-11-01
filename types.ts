@@ -9,6 +9,7 @@ export type Page =
     | 'community'
     | 'vendor-profile'
     | 'registration'
+    | 'client-registration'
     | 'vendorDashboard'
     | 'admin' // Nuevo tipo para el panel de admin
     // Vendor sub-pages from Header
@@ -142,6 +143,8 @@ export interface AdminUser {
     weddingDate?: string;
     location: string;
     phone?: string;
+    avatarUrl?: string;
+    registrationType?: 'email' | 'google';
 }
 
 export interface AdminVendor {
@@ -154,8 +157,10 @@ export interface AdminVendor {
     registeredDate: string; // Consider using Firestore Timestamp in real app
     status: VendorStatus;
     isPremium?: boolean;
+    logoUrl?: string;
     // FIX: Add gallery property to match usage in VendorProfile.tsx
     gallery?: string[];
+    registrationType?: 'email' | 'google';
 }
 
 export interface HeroSlide {

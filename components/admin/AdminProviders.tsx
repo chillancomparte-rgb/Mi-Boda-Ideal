@@ -1,7 +1,7 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { AdminVendor, VendorStatus } from '../../types';
 import { db } from '../../services/firebase';
-import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
 import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 import { XCircleIcon } from '../icons/XCircleIcon';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -11,6 +11,8 @@ import { PlusCircleIcon } from '../icons/PlusCircleIcon';
 import Spinner from '../Spinner';
 import { XIcon } from '../icons/XIcon';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
+import { uploadImageToHosting } from '../../services/hostingUploadService';
+import { UploadCloudIcon } from '../icons/UploadCloudIcon';
 
 
 const AdminProviders: React.FC = () => {
@@ -22,6 +24,8 @@ const AdminProviders: React.FC = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVendor, setEditingVendor] = useState<AdminVendor | null>(null);
     const [formData, setFormData] = useState<Partial<AdminVendor>>({});
+    const [isUploading, setIsUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const fetchVendors = async () => {
         setIsLoading(true);
@@ -60,6 +64,22 @@ const AdminProviders: React.FC = () => {
         setIsModalOpen(false);
         setEditingVendor(null);
         setFormData({});
+        setIsUploading(false);
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const imageUrl = await uploadImageToHosting(file);
+            setFormData(prev => ({ ...prev, logoUrl: imageUrl }));
+        } catch (error) {
+            alert('Error al subir la imagen. Por favor, revisa la consola para más detalles.');
+        } finally {
+            setIsUploading(false);
+        }
     };
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -78,20 +98,22 @@ const AdminProviders: React.FC = () => {
             return;
         }
 
+        setIsLoading(true);
         try {
             if (editingVendor) {
-                // Update existing vendor
                 const vendorDoc = doc(db, 'vendors', editingVendor.id);
                 await updateDoc(vendorDoc, formData);
             } else {
-                // Create new vendor
-                await addDoc(collection(db, 'vendors'), { ...formData, registeredDate: new Date().toISOString() });
+                const newVendor = { ...formData, registeredDate: new Date().toISOString() };
+                await addDoc(collection(db, 'vendors'), newVendor);
             }
-            fetchVendors(); // Refresh data
+            fetchVendors();
             handleCloseModal();
         } catch (error) {
             console.error("Error saving vendor: ", error);
             alert("Ocurrió un error al guardar.");
+        } finally {
+            setIsLoading(false);
         }
     };
     
@@ -195,7 +217,7 @@ const AdminProviders: React.FC = () => {
                     <table className="min-w-full divide-y divide-gray-200">
                         <thead className="bg-gray-50">
                             <tr>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Proveedor</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha Registro</th>
@@ -206,11 +228,18 @@ const AdminProviders: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredVendors.map(vendor => (
                                 <tr key={vendor.id}>
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
-                                        <div className="text-sm text-gray-500">{vendor.email}</div>
+                                    <td class="px-6 py-4 whitespace-nowrap">
+                                        <div class="flex items-center">
+                                            <div class="flex-shrink-0 h-10 w-10">
+                                                <img class="h-10 w-10 rounded-full object-cover" src={vendor.logoUrl || 'https://placehold.co/100'} alt={vendor.name} />
+                                            </div>
+                                            <div class="ml-4">
+                                                <div class="text-sm font-medium text-gray-900">{vendor.name}</div>
+                                                <div class="text-sm text-gray-500">{vendor.email}</div>
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{vendor.phone || 'No ingresado'}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{vendor.phone || 'No ingresado'}</td>
                                      <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {vendor.isPremium && <CrownIcon className="h-5 w-5 text-yellow-500" />}
                                     </td>
@@ -282,6 +311,17 @@ const AdminProviders: React.FC = () => {
                                 <div className="flex items-center pt-6 md:col-span-2">
                                     <input type="checkbox" id="isPremium" name="isPremium" checked={formData.isPremium || false} onChange={handleFormChange} className="h-4 w-4 text-brand-primary rounded" />
                                     <label htmlFor="isPremium" className="ml-2 block text-sm font-medium text-gray-700">Es Premium</label>
+                                </div>
+
+                                <div class="md:col-span-2">
+                                    <label className="block text-sm font-medium text-gray-700">Logo del Proveedor</label>
+                                    <div className="mt-1 flex items-center gap-4">
+                                        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
+                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
+                                            {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Logo</>}
+                                        </button>
+                                    </div>
+                                    {formData.logoUrl && <img src={formData.logoUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}
                                 </div>
                             </div>
                             <div className="p-6 border-t bg-gray-50 flex justify-end gap-4">

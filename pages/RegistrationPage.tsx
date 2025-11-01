@@ -52,14 +52,13 @@ const RegistrationPage: React.FC<RegistrationPageProps> = ({ navigate }) => {
     const renderStep = () => {
         switch (step) {
             case 1:
-                return <Step1Account nextStep={nextStep} handleChange={handleChange} values={formData} />;
+                return <Step1Account nextStep={nextStep} handleChange={handleChange} values={formData} isClientRegistration={false} />;
             case 2:
-                return <Step2Contact nextStep={nextStep} prevStep={prevStep} handleChange={handleChange} values={formData} />;
+                return <Step2Contact nextStep={nextStep} prevStep={prevStep} handleChange={handleChange} values={formData} isClientRegistration={false} />;
             case 3:
                 return <Step3Gallery nextStep={nextStep} prevStep={prevStep} addGalleryImage={addGalleryImage} removeGalleryImage={removeGalleryImage} values={formData} />;
             case 4:
-                return <Step4Confirmation values={formData} navigate={navigate} />;
-            default:
+                return <Step4Confirmation values={formData} navigate={navigate} isClientRegistration={false} />;            default:
                 return <div>Paso no encontrado</div>;
         }
     };

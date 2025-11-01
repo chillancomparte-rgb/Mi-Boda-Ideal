@@ -7,7 +7,7 @@ import {
     signOut,
     User as FirebaseUser
 } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, limit, updateDoc } from 'firebase/firestore';
 import type { User, AuthContextType } from '../types';
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -56,6 +56,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     email: firebaseUser.email,
                     displayName: finalDisplayName,
                     role: finalRole,
+                    registrationType: userDocSnap.exists() ? userDocSnap.data().registrationType : (firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 'email'),
                 };
                 
                 setUser(appUser);
@@ -81,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             role: 'user', // Default role for new signups
             registeredDate: new Date().toISOString(),
             location: 'Desconocida', // Default location
+            registrationType: 'email',
         });
         
         return userCredential;
@@ -94,12 +96,45 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return signOut(auth);
     };
 
+    const signInWithGoogle = async (role: 'user' | 'vendor') => {
+        const provider = new GoogleAuthProvider();
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const firebaseUser = result.user;
+            const userDocRef = doc(db, 'users', firebaseUser.uid);
+            const userDocSnap = await getDoc(userDocRef);
+
+            if (!userDocSnap.exists()) {
+                // New user, create document
+                await setDoc(userDocRef, {
+                    id: firebaseUser.uid,
+                    email: firebaseUser.email,
+                    name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Nuevo Usuario',
+                    role: role, // Set role based on where they signed up
+                    registeredDate: new Date().toISOString(),
+                    location: 'Desconocida',
+                    avatarUrl: firebaseUser.photoURL,
+                    registrationType: 'google',
+                });
+            } else {
+                // Existing user, update if necessary (e.g., role if they signed up as vendor later)
+                // For simplicity, we'll just ensure registrationType is set
+                await updateDoc(userDocRef, { registrationType: 'google' });
+            }
+            return result;
+        } catch (error) {
+            console.error("Error during Google Sign-In:", error);
+            throw error;
+        }
+    };
+
     const value = {
         user,
         loading,
         signUp,
         logIn,
         logOut,
+        signInWithGoogle,
     };
 
     return (

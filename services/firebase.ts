@@ -19,12 +19,12 @@ import { getAuth } from 'firebase/auth';
 // ¡No te preocupes, estas claves son seguras para exponer en el lado del cliente!
 
 const firebaseConfig = {
-    apiKey: "AIzaSyAZlZ4WwqCdSwrhmYGldGBEdxMxr4eOn_0",
-    authDomain: "mibodaideal-c0a05.firebaseapp.com",
-    projectId: "mibodaideal-c0a05",
-    storageBucket: "mibodaideal-c0a05.appspot.com",
-    messagingSenderId: "10917823148",
-    appId: "1:10917823148:web:a562c3da349597b2461509"
+  apiKey: "AIzaSyAZlZ4WwqCdSwrhmYGldGBEdxMxr4eOn_0",
+  authDomain: "mibodaideal-c0a05.firebaseapp.com",
+  projectId: "mibodaideal-c0a05",
+  storageBucket: "mibodaideal-c0a05.firebasestorage.app",
+  messagingSenderId: "10917823148",
+  appId: "1:10917823148:web:a562c3da349597b2461509"
 };
 
 // --- FIN DE LAS INSTRUCCIONES ---

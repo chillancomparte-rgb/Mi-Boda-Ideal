@@ -1,12 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { db } from '../../services/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import Spinner from '../Spinner';
+import { uploadImageToHosting } from '../../services/hostingUploadService';
+import { UploadCloudIcon } from '../icons/UploadCloudIcon';
 
 const AdminSettings: React.FC = () => {
     const [isMaintenanceMode, setIsMaintenanceMode] = useState<boolean>(false);
+    const [logoUrl, setLogoUrl] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [isSaving, setIsSaving] = useState<boolean>(false);
+    const [isUploading, setIsUploading] = useState<boolean>(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const settingsDocRef = doc(db, 'site_config', 'main');
 
@@ -16,10 +21,14 @@ const AdminSettings: React.FC = () => {
             try {
                 const docSnap = await getDoc(settingsDocRef);
                 if (docSnap.exists()) {
-                    setIsMaintenanceMode(docSnap.data().isMaintenanceMode || false);
+                    const data = docSnap.data();
+                    setIsMaintenanceMode(data.isMaintenanceMode || false);
+                    setLogoUrl(data.logoUrl || '');
                 } else {
-                    await setDoc(settingsDocRef, { isMaintenanceMode: false });
-                    setIsMaintenanceMode(false);
+                    const initialSettings = { isMaintenanceMode: false, logoUrl: '' };
+                    await setDoc(settingsDocRef, initialSettings);
+                    setIsMaintenanceMode(initialSettings.isMaintenanceMode);
+                    setLogoUrl(initialSettings.logoUrl);
                 }
             } catch (error) {
                 console.error("Error fetching settings:", error);
@@ -38,6 +47,34 @@ const AdminSettings: React.FC = () => {
             setIsMaintenanceMode(newStatus);
         } catch (error) {
             console.error("Error updating settings:", error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setIsUploading(true);
+        try {
+            const uploadedUrl = await uploadImageToHosting(file);
+            setLogoUrl(uploadedUrl);
+        } catch (error) {
+            alert('Error al subir la imagen. Por favor, revisa la consola para más detalles.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    const handleSaveLogo = async () => {
+        setIsSaving(true);
+        try {
+            await setDoc(settingsDocRef, { logoUrl }, { merge: true });
+            alert('Logo actualizado correctamente.');
+        } catch (error) {
+            console.error("Error saving logo:", error);
+            alert('Error al guardar el logo.');
         } finally {
             setIsSaving(false);
         }
@@ -76,6 +113,29 @@ const AdminSettings: React.FC = () => {
                             </div>
                         </label>
                     </div>
+                </div>
+            </div>
+
+            <div className="border rounded-lg p-4 mt-6">
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h2 className="font-semibold text-gray-700">Logo del Sitio</h2>
+                        <p className="text-sm text-gray-500">
+                            Sube el logo principal que se mostrará en la cabecera y otras partes del sitio.
+                        </p>
+                    </div>
+                </div>
+                <div className="mt-4 flex flex-col items-start gap-4">
+                    <div className="flex items-center gap-4">
+                        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
+                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
+                            {isUploading ? <Spinner size="sm" /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Cambiar Logo</>}
+                        </button>
+                        {logoUrl && <img src={logoUrl} alt="Logo del sitio" className="h-16 w-auto rounded-md bg-gray-100 p-1" />}
+                    </div>
+                    <button onClick={handleSaveLogo} disabled={isSaving || !logoUrl} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent disabled:bg-gray-400">
+                        {isSaving ? 'Guardando...' : 'Guardar Logo'}
+                    </button>
                 </div>
             </div>
         </div>
