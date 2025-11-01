@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { Page } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { WeddingRingIcon } from './icons/WeddingRingIcon';
@@ -11,6 +11,9 @@ import { LogoutIcon } from './icons/LogoutIcon';
 import Spinner from './Spinner';
 import { BriefcaseIcon } from './icons/BriefcaseIcon';
 import { ListIcon } from './icons/ListIcon';
+import { MenuIcon } from './icons/MenuIcon';
+import { XIcon } from './icons/XIcon';
+
 
 interface HeaderProps {
     navigate: (page: Page, vendor?: any, category?: string) => void;
@@ -21,10 +24,21 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ navigate, currentPage, onLoginClick, onSignupClick }) => {
     const { user, loading, logOut } = useAuth();
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [openMobileDropdown, setOpenMobileDropdown] = useState<string | null>(null);
 
     const handleLogout = async () => {
         await logOut();
         navigate('home');
+    };
+    
+    const handleMobileNavigate = (page: Page, data?: any, category?: string) => {
+        navigate(page, data, category);
+        setIsMobileMenuOpen(false);
+    };
+
+    const toggleMobileDropdown = (label: string) => {
+        setOpenMobileDropdown(openMobileDropdown === label ? null : label);
     };
 
     const categoryToPage = (category: string): Page => {
@@ -187,7 +201,98 @@ const Header: React.FC<HeaderProps> = ({ navigate, currentPage, onLoginClick, on
                         </div>
                     </div>
                 </div>
+
+                {/* Mobile Menu Button */}
+                <div className="md:hidden flex items-center">
+                    <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} aria-label="Abrir menú">
+                        {isMobileMenuOpen ? <XIcon className="h-6 w-6 text-brand-dark" /> : <MenuIcon className="h-6 w-6 text-brand-dark" />}
+                    </button>
+                </div>
             </div>
+
+            {/* Mobile Menu Panel */}
+            {isMobileMenuOpen && (
+                <div className="md:hidden bg-white border-t animate-fade-in-down">
+                    <nav className="flex flex-col p-4">
+                        {navLinks.map(link => (
+                            <div key={link.label} className="py-2 border-b border-gray-100 last:border-b-0">
+                                <button
+                                    onClick={() => {
+                                        if (link.dropdown) {
+                                            toggleMobileDropdown(link.label);
+                                        } else {
+                                            handleMobileNavigate(link.page);
+                                        }
+                                    }}
+                                    className="w-full flex justify-between items-center text-left font-semibold text-brand-dark"
+                                >
+                                    {link.label}
+                                    {link.dropdown && <ChevronDownIcon className={`h-5 w-5 transition-transform duration-300 ${openMobileDropdown === link.label ? 'rotate-180' : ''}`} />}
+                                </button>
+                                {link.dropdown && openMobileDropdown === link.label && (
+                                    <div className="pl-4 pt-2 space-y-2 mt-2">
+                                        {link.dropdown.map(item => (
+                                            <a
+                                                key={item.label}
+                                                href="#"
+                                                onClick={(e) => { e.preventDefault(); handleMobileNavigate(item.page, undefined, item.label); }}
+                                                className="block py-1 text-sm text-brand-dark opacity-80 hover:text-brand-primary"
+                                            >
+                                                {item.label}
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </nav>
+                    <div className="p-4 border-t space-y-3">
+                        {loading ? (
+                            <Spinner />
+                        ) : user ? (
+                            <>
+                                <div className="font-semibold text-brand-dark truncate px-2">{user.email}</div>
+                                {user.role === 'user' && (
+                                    <a href="#" onClick={(e) => { e.preventDefault(); handleMobileNavigate('tools'); }} className="block w-full text-left py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary rounded-md px-2">
+                                        Mi Panel de Boda
+                                    </a>
+                                )}
+                                {user.role === 'vendor' && (
+                                    <a href="#" onClick={(e) => { e.preventDefault(); handleMobileNavigate('vendorDashboard'); }} className="block w-full text-left py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary rounded-md px-2">
+                                        Panel de Proveedor
+                                    </a>
+                                )}
+                                {user.role === 'admin' && (
+                                    <>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); handleMobileNavigate('admin'); }} className="flex items-center w-full text-left py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary rounded-md px-2">
+                                            <ShieldIcon className="h-4 w-4 mr-2" /> Panel Admin
+                                        </a>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); handleMobileNavigate('tools'); }} className="flex items-center w-full text-left py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary rounded-md px-2">
+                                            <ListIcon className="h-4 w-4 mr-2" /> Panel Boda
+                                        </a>
+                                        <a href="#" onClick={(e) => { e.preventDefault(); handleMobileNavigate('vendorDashboard'); }} className="flex items-center w-full text-left py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary rounded-md px-2">
+                                            <BriefcaseIcon className="h-4 w-4 mr-2" /> Panel Proveedor
+                                        </a>
+                                    </>
+                                )}
+                                <button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }} className="w-full text-left flex items-center py-2 text-sm text-red-600 hover:bg-red-50 rounded-md px-2">
+                                    <LogoutIcon className="h-4 w-4 mr-2" />
+                                    Cerrar Sesión
+                                </button>
+                            </>
+                        ) : (
+                            <>
+                                <button onClick={() => { onLoginClick(); setIsMobileMenuOpen(false); }} className="w-full text-center bg-brand-light text-brand-dark font-bold py-3 rounded-md transition-colors hover:bg-brand-secondary">
+                                    Iniciar Sesión
+                                </button>
+                                <button onClick={() => { onSignupClick(); setIsMobileMenuOpen(false); }} className="w-full text-center bg-brand-primary text-white font-bold py-3 rounded-md transition-colors hover:bg-brand-accent">
+                                    Regístrate gratis
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </header>
     );
 };
