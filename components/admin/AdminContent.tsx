@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { GoogleGenAI } from '@google/genai';
 import { db } from '../../services/firebase';
 import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
 import type { RealWedding, Inspiration } from '../../types';
-import { SparklesIcon } from '../icons/SparklesIcon';
 import { EditIcon } from '../icons/EditIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
@@ -105,35 +103,6 @@ const AdminContent: React.FC = () => {
         }
     };
 
-    // AI functionality
-    const [topic, setTopic] = useState('');
-    const [generatedIdeas, setGeneratedIdeas] = useState<string[]>([]);
-    const [isAILoading, setIsAILoading] = useState(false);
-    const [aiError, setAIError] = useState('');
-    
-    const handleGenerateIdeas = async () => {
-        if (!topic.trim()) {
-            setAIError('Por favor, ingresa un tema.');
-            return;
-        }
-        setIsAILoading(true);
-        setAIError('');
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-            const response = await ai.models.generateContent({
-                model: "gemini-2.5-flash",
-                contents: `Generate 5 blog post titles for a wedding website about: "${topic}". In Spanish.`,
-            });
-            const text = response.text;
-            setGeneratedIdeas(text.split('\n').filter(Boolean).map(line => line.replace(/^\d+\.\s*/, '')));
-        } catch (err) {
-            setAIError("Error al contactar la IA.");
-            console.error(err);
-        } finally {
-            setIsAILoading(false);
-        }
-    };
-
     const renderModalForm = () => {
         if (modalState.type === 'weddings') {
             const weddingData = formData as Partial<RealWedding>;
@@ -207,28 +176,6 @@ const AdminContent: React.FC = () => {
                         </>
                     )}
                 </div>
-            </div>
-
-            <div className="bg-white p-6 rounded-lg shadow">
-                 <h2 className="text-lg font-semibold text-brand-dark mb-3 flex items-center">
-                    <SparklesIcon className="h-5 w-5 mr-2 text-brand-primary" />
-                    Generador de Ideas para Artículos
-                </h2>
-                <div className="flex flex-col sm:flex-row gap-4">
-                    <input type="text" value={topic} onChange={(e) => setTopic(e.target.value)} placeholder="Ej: Decoración rústica" className="flex-grow p-3 border rounded-md" />
-                    <button onClick={handleGenerateIdeas} disabled={isAILoading} className="bg-brand-primary text-white font-bold py-3 px-6 rounded-md hover:bg-brand-accent disabled:bg-gray-400">
-                        {isAILoading ? 'Generando...' : 'Generar Ideas'}
-                    </button>
-                </div>
-                {aiError && <p className="text-red-500 text-sm mt-2">{aiError}</p>}
-                {generatedIdeas.length > 0 && (
-                     <div className="mt-4 bg-gray-50 p-4 rounded-md">
-                        <h3 className="font-semibold text-brand-dark mb-2">Ideas:</h3>
-                        <ul className="list-disc list-inside space-y-1">
-                            {generatedIdeas.map((idea, index) => <li key={index} className="text-gray-700">{idea}</li>)}
-                        </ul>
-                    </div>
-                )}
             </div>
             
             {modalState.isOpen && (

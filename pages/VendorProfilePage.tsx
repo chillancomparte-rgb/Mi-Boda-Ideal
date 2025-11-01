@@ -9,7 +9,6 @@ import { ChatIcon } from '../components/icons/ChatIcon';
 import { PhoneIcon } from '../components/icons/PhoneIcon';
 import { MOCK_REVIEWS } from '../constants';
 import VendorReviews from '../components/vendor/VendorReviews';
-import ChatWidget from '../components/vendor/ChatWidget';
 import VendorCard from '../components/VendorCard';
 import Accordion from '../components/Accordion';
 import { getVendorFAQs, getSimilarVendors } from '../services/mockDataService';
@@ -158,8 +157,6 @@ const VendorProfilePage: React.FC<VendorProfilePageProps> = ({ vendor, onBack, f
                                 </button>
                             </div>
                         </div>
-
-                        <ChatWidget vendor={vendor} />
                     </aside>
                 </div>
                 

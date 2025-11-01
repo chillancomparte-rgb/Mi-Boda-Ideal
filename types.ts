@@ -171,11 +171,3 @@ export interface AuthContextType {
   logIn: (email: string, password: string) => Promise<any>;
   logOut: () => Promise<void>;
 }
-
-// Tipos para la IA
-export interface AIInspirationResponse {
-    themeTitle: string;
-    colorPalette: { name: string; hex: string }[];
-    decorIdeas: string[];
-    dressStyle: string[];
-}
