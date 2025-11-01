@@ -47,6 +47,7 @@ export type Page =
 
 
 export interface Vendor {
+    id?: string;
     name: string;
     category: string;
     location: string;
@@ -67,7 +68,7 @@ export interface Inspiration {
 }
 
 export interface RealWedding {
-    id: number;
+    id: string;
     name: string;
     location: string;
     photos: string[];
@@ -137,9 +138,10 @@ export interface AdminUser {
     id: string;
     name: string;
     email: string;
-    registeredDate: string;
+    registeredDate: string; // Consider using Firestore Timestamp in real app
     weddingDate?: string;
     location: string;
+    phone?: string;
 }
 
 export interface AdminVendor {
@@ -148,7 +150,8 @@ export interface AdminVendor {
     category: string;
     location: string;
     email: string;
-    registeredDate: string;
+    phone?: string;
+    registeredDate: string; // Consider using Firestore Timestamp in real app
     status: VendorStatus;
     isPremium?: boolean;
 }
@@ -158,6 +161,7 @@ export interface User {
   uid: string;
   email: string | null;
   displayName: string | null;
+  role?: 'admin' | 'user' | 'vendor';
 }
 
 export interface AuthContextType {
@@ -166,4 +170,12 @@ export interface AuthContextType {
   signUp: (email: string, password: string) => Promise<any>;
   logIn: (email: string, password: string) => Promise<any>;
   logOut: () => Promise<void>;
+}
+
+// Tipos para la IA
+export interface AIInspirationResponse {
+    themeTitle: string;
+    colorPalette: { name: string; hex: string }[];
+    decorIdeas: string[];
+    dressStyle: string[];
 }

@@ -238,7 +238,7 @@ export const MOCK_FEATURED_VENDORS: Vendor[] = MOCK_VENDORS.filter(v => v.isPrem
 
 export const MOCK_REAL_WEDDINGS: RealWedding[] = [
     {
-        id: 1,
+        id: 'rw001',
         name: 'Daniela & Rodrigo',
         location: 'Chillán, Ñuble',
         photos: [
@@ -249,7 +249,7 @@ export const MOCK_REAL_WEDDINGS: RealWedding[] = [
         ]
     },
     {
-        id: 2,
+        id: 'rw002',
         name: 'Caro & Magda',
         location: 'Paine, Maipo',
         photos: [
@@ -260,7 +260,7 @@ export const MOCK_REAL_WEDDINGS: RealWedding[] = [
         ]
     },
     {
-        id: 3,
+        id: 'rw003',
         name: 'Fabiola & Alberto',
         location: 'San José de Maipo, Cordillera',
         photos: [
@@ -271,7 +271,7 @@ export const MOCK_REAL_WEDDINGS: RealWedding[] = [
         ]
     },
      {
-        id: 4,
+        id: 'rw004',
         name: 'Camila & Sergio',
         location: 'Paine, Maipo',
         photos: [

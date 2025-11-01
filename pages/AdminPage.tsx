@@ -6,9 +6,9 @@ import AdminDashboard from '../components/admin/AdminDashboard';
 import AdminProviders from '../components/admin/AdminProviders';
 import AdminUsers from '../components/admin/AdminUsers';
 import AdminHeader from '../components/admin/AdminHeader';
-import AdminContent from '../components/admin/AdminContent'; // Nueva importación
+import AdminContent from '../components/admin/AdminContent';
 
-type AdminView = 'dashboard' | 'providers' | 'users' | 'content' | 'settings';
+type AdminView = 'dashboard' | 'providers' | 'users' | 'content';
 
 interface AdminPageProps {
     navigate: (page: Page) => void;
@@ -25,9 +25,8 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigate }) => {
                 return <AdminProviders />;
             case 'users':
                 return <AdminUsers />;
-            case 'content': // Nuevo caso
+            case 'content':
                 return <AdminContent />;
-            // Casos para 'content' y 'settings' se pueden añadir aquí
             default:
                 return <AdminDashboard />;
         }

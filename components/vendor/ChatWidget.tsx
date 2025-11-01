@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Vendor, ChatMessage } from '../../types';
 import { SendIcon } from '../icons/SendIcon';
+import { getChatbotResponse } from '../../services/geminiService';
 
 interface ChatWidgetProps {
     vendor: Vendor;
@@ -30,13 +31,15 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ vendor }) => {
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        // Reset state when vendor changes
+        setMessages([]);
         setIsTyping(true);
         const typingTimeout = setTimeout(() => {
             setIsTyping(false);
             setMessages([
                 { id: 1, text: getWelcomeMessage(vendor), sender: 'vendor' }
             ]);
-        }, 2000); // Simulate typing for 2 seconds
+        }, 1500);
 
         return () => clearTimeout(typingTimeout);
     }, [vendor]);
@@ -45,18 +48,32 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ vendor }) => {
         chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isTyping]);
 
-    const handleSendMessage = (e: React.FormEvent) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newMessage.trim() === '') return;
+        if (newMessage.trim() === '' || isTyping) return;
 
         const userMessage: ChatMessage = {
             id: Date.now(),
             text: newMessage.trim(),
             sender: 'user',
         };
-
-        setMessages(prev => [...prev, userMessage]);
+        
+        const currentMessages = [...messages, userMessage];
+        setMessages(currentMessages);
         setNewMessage('');
+        setIsTyping(true);
+
+        // Get AI response
+        const aiResponseText = await getChatbotResponse(vendor, currentMessages, userMessage.text);
+        
+        const aiMessage: ChatMessage = {
+            id: Date.now() + 1,
+            text: aiResponseText,
+            sender: 'vendor',
+        };
+        
+        setIsTyping(false);
+        setMessages(prev => [...prev, aiMessage]);
     };
 
     return (
@@ -103,7 +120,7 @@ const ChatWidget: React.FC<ChatWidgetProps> = ({ vendor }) => {
                         className="flex-1 w-full p-2 border border-gray-300 rounded-full focus:ring-brand-primary focus:border-brand-primary text-sm"
                         disabled={isTyping}
                     />
-                    <button type="submit" className="bg-brand-primary text-white p-2.5 rounded-full hover:bg-brand-accent transition-colors disabled:bg-gray-300" disabled={!newMessage || isTyping}>
+                    <button type="submit" className="bg-brand-primary text-white p-2.5 rounded-full hover:bg-brand-accent transition-colors disabled:bg-gray-300" disabled={!newMessage.trim() || isTyping}>
                         <SendIcon className="h-5 w-5" />
                     </button>
                 </form>

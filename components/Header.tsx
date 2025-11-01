@@ -9,6 +9,8 @@ import { UserIcon } from './icons/UserIcon';
 import { ShieldIcon } from './icons/ShieldIcon';
 import { LogoutIcon } from './icons/LogoutIcon';
 import Spinner from './Spinner';
+import { BriefcaseIcon } from './icons/BriefcaseIcon';
+import { ListIcon } from './icons/ListIcon';
 
 interface HeaderProps {
     navigate: (page: Page, vendor?: any, category?: string) => void;
@@ -127,9 +129,32 @@ const Header: React.FC<HeaderProps> = ({ navigate, currentPage, onLoginClick, on
                                     <div className="px-4 py-2 border-b">
                                         <p className="text-sm font-bold text-brand-dark truncate">{user.email}</p>
                                     </div>
-                                    <a href="#" onClick={(e) => { e.preventDefault(); navigate('tools'); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
-                                        Mi Panel de Boda
-                                    </a>
+                                    {user.role === 'user' && (
+                                        <a href="#" onClick={(e) => { e.preventDefault(); navigate('tools'); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                            Mi Panel de Boda
+                                        </a>
+                                    )}
+                                    {user.role === 'vendor' && (
+                                        <a href="#" onClick={(e) => { e.preventDefault(); navigate('vendorDashboard'); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                            Panel de Proveedor
+                                        </a>
+                                    )}
+                                     {user.role === 'admin' && (
+                                        <>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); navigate('admin'); }} className="flex items-center w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                                <ShieldIcon className="h-4 w-4 mr-2" />
+                                                Panel de Administrador
+                                            </a>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); navigate('tools'); }} className="flex items-center w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                                <ListIcon className="h-4 w-4 mr-2" />
+                                                Panel de Boda (Cliente)
+                                            </a>
+                                            <a href="#" onClick={(e) => { e.preventDefault(); navigate('vendorDashboard'); }} className="flex items-center w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                                <BriefcaseIcon className="h-4 w-4 mr-2" />
+                                                Panel de Proveedor
+                                            </a>
+                                        </>
+                                    )}
                                     <button onClick={handleLogout} className="w-full text-left flex items-center px-4 py-2 text-sm text-red-600 hover:bg-red-50 hover:text-red-700">
                                         <LogoutIcon className="h-4 w-4 mr-2" />
                                         Cerrar Sesión
@@ -149,12 +174,8 @@ const Header: React.FC<HeaderProps> = ({ navigate, currentPage, onLoginClick, on
                                         <p className="text-sm font-bold text-brand-dark">Proveedores</p>
                                         <p className="text-xs text-brand-dark opacity-70">Gestiona tu negocio</p>
                                     </div>
-                                    <a href="#" onClick={(e) => { e.preventDefault(); navigate('vendorDashboard'); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
+                                    <a href="#" onClick={(e) => { e.preventDefault(); onLoginClick(); }} className="block w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
                                         Acceder a mi Panel
-                                    </a>
-                                     <a href="#" onClick={(e) => { e.preventDefault(); navigate('admin'); }} className="flex items-center w-full text-left px-4 py-2 text-sm text-brand-dark hover:bg-brand-secondary hover:text-brand-primary">
-                                        <ShieldIcon className="h-4 w-4 mr-2" />
-                                        Panel de Administrador
                                     </a>
                                     <div className="px-4 pt-2 pb-1">
                                         <button onClick={onSignupClick} className="block w-full text-center bg-brand-primary text-white py-2 text-sm font-bold rounded-md hover:bg-brand-accent transition-colors">

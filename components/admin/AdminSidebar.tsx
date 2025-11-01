@@ -4,11 +4,10 @@ import { WeddingRingIcon } from '../icons/WeddingRingIcon';
 import { DashboardIcon } from '../icons/DashboardIcon';
 import { StoreIcon } from '../icons/StoreIcon';
 import { UsersIcon } from '../icons/UsersIcon';
-import { SettingsIcon } from '../icons/SettingsIcon';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
-import { FileTextIcon } from '../icons/FileTextIcon'; // Nueva importación
+import { FileTextIcon } from '../icons/FileTextIcon';
 
-type AdminView = 'dashboard' | 'providers' | 'users' | 'content' | 'settings';
+type AdminView = 'dashboard' | 'providers' | 'users' | 'content';
 
 interface AdminSidebarProps {
     currentView: AdminView;
@@ -22,8 +21,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, setCurrentView
         { id: 'dashboard' as AdminView, label: 'Dashboard', icon: <DashboardIcon className="h-5 w-5" /> },
         { id: 'providers' as AdminView, label: 'Proveedores', icon: <StoreIcon className="h-5 w-5" /> },
         { id: 'users' as AdminView, label: 'Usuarios', icon: <UsersIcon className="h-5 w-5" /> },
-        { id: 'content' as AdminView, label: 'Contenido', icon: <FileTextIcon className="h-5 w-5" /> }, // Nuevo ítem
-        { id: 'settings' as AdminView, label: 'Configuración', icon: <SettingsIcon className="h-5 w-5" /> },
+        { id: 'content' as AdminView, label: 'Contenido', icon: <FileTextIcon className="h-5 w-5" /> },
     ];
 
     return (

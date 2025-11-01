@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import type { Vendor, FAQItem } from '../types';
-import { getVendors, getVendorFAQs } from '../services/mockDataService';
+import type { Vendor } from '../types';
+import { db } from '../services/firebase';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import Spinner from '../components/Spinner';
 import SeoMeta from '../components/SeoMeta';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../constants';
 import { SearchIcon } from '../components/icons/SearchIcon';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import SearchResultCard from '../components/SearchResultCard';
-import Accordion from '../components/Accordion';
 import RelatedSearches from '../components/RelatedSearches';
 import { SparklesIcon } from '../components/icons/SparklesIcon';
 import { ErrorIcon } from '../components/icons/ErrorIcon';
@@ -34,8 +34,6 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
 
     const [selectedCategory, setSelectedCategory] = useState<string | null>(initialCategory || null);
     const [selectedLocation, setSelectedLocation] = useState<string | null>(initialRegion || null);
-    const [faqs, setFaqs] = useState<FAQItem[]>([]);
-    const [isLoadingFaqs, setIsLoadingFaqs] = useState(false);
     
     const getInitialStep = (): SearchStep => {
         if (initialCategory) {
@@ -50,8 +48,27 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
             setIsLoading(true);
             setError(null);
             try {
-                const vendors = await getVendors();
-                setAllVendors(vendors);
+                const vendorsCollectionRef = collection(db, 'vendors');
+                // Solo obtenemos los proveedores que han sido aprobados
+                const q = query(vendorsCollectionRef, where("status", "==", "Aprobado"));
+                const vendorsSnapshot = await getDocs(q);
+                const vendorsList = vendorsSnapshot.docs.map(doc => {
+                    const data = doc.data();
+                    // Mapeamos y proveemos valores por defecto para que coincida con el tipo Vendor
+                    return {
+                        id: doc.id,
+                        name: data.name || 'Sin Nombre',
+                        category: data.category || 'Sin Categoría',
+                        location: data.location || 'Sin Ubicación',
+                        city: data.location || 'Sin Ciudad', // Usamos location como fallback
+                        rating: data.rating || 4.5, // Default rating
+                        description: data.description || 'Descripción no disponible.', // Default description
+                        imageUrl: data.imageUrl || `https://source.unsplash.com/featured/400x300/?${encodeURIComponent(data.category || 'wedding')}`, // Default image
+                        startingPrice: data.startingPrice || 100000, // Default price
+                        isPremium: data.isPremium || false,
+                    } as Vendor;
+                });
+                setAllVendors(vendorsList);
             } catch (err) {
                 setError("No se pudieron cargar los proveedores. Inténtalo de nuevo más tarde.");
                 console.error(err);
@@ -74,20 +91,6 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
         
         if (selectedCategory && selectedLocation) {
             setStep('SHOW_RESULTS');
-            // Fetch FAQs for the current search
-            const fetchFaqs = async () => {
-                setIsLoadingFaqs(true);
-                try {
-                    const generatedFaqs = await getVendorFAQs(selectedCategory, selectedCategory); // Use category for both as vendor name is not relevant here
-                    setFaqs(generatedFaqs);
-                } catch (e) {
-                    console.error("Failed to fetch FAQs for search page", e);
-                    setFaqs([]);
-                } finally {
-                    setIsLoadingFaqs(false);
-                }
-            };
-            fetchFaqs();
         }
 
     }, [allVendors, selectedCategory, selectedLocation, isLoading]);
@@ -214,7 +217,7 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
                                             <div className="space-y-6">
                                                 {premiumVendors.map(vendor => (
                                                     <SearchResultCard
-                                                        key={vendor.name}
+                                                        key={vendor.id || vendor.name}
                                                         vendor={vendor}
                                                         onVendorSelect={onVendorSelect}
                                                         isFavorite={favorites.some(fav => fav.name === vendor.name)}
@@ -233,7 +236,7 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
                                             <div className="space-y-6">
                                                 {displayedStandardVendors.map(vendor => (
                                                     <SearchResultCard
-                                                        key={vendor.name}
+                                                        key={vendor.id || vendor.name}
                                                         vendor={vendor}
                                                         onVendorSelect={onVendorSelect}
                                                         isFavorite={favorites.some(fav => fav.name === vendor.name)}
@@ -257,18 +260,6 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
                                 </div>
                                 
                                 <aside className="lg:col-span-4 lg:sticky top-40 self-start space-y-8">
-                                    {!isLoadingFaqs && faqs.length > 0 && (
-                                        <section>
-                                            <h3 className="text-lg font-serif font-bold text-brand-dark mb-3">Preguntas Frecuentes</h3>
-                                            <div className="space-y-2">
-                                                {faqs.slice(0, 4).map(faq => (
-                                                    <Accordion key={faq.question} title={faq.question}>
-                                                        <p className="text-sm text-brand-dark opacity-80">{faq.answer}</p>
-                                                    </Accordion>
-                                                ))}
-                                            </div>
-                                        </section>
-                                    )}
                                     <RelatedSearches searches={relatedSearches} />
                                 </aside>
                             </div>
