@@ -14,7 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $uploadFile = $uploadDir . basename($_FILES['image']['name']);
 
         if (move_uploaded_file($_FILES['image']['tmp_name'], $uploadFile)) {
-            $imageUrl = 'http://' . $_SERVER['HTTP_HOST'] . '/mibodaideal/uploads/' . basename($_FILES['image']['name']);
+            $protocol = isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http';
+            $host = $_SERVER['HTTP_HOST'];
+            $path = '/uploads/' . basename($_FILES['image']['name']);
+            $imageUrl = $protocol . '://' . $host . $path;
             echo json_encode(['imageUrl' => $imageUrl]);
         } else {
             http_response_code(500);
