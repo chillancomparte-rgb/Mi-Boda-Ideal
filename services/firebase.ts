@@ -24,7 +24,7 @@ const firebaseConfig = {
   projectId: "mibodaideal-c0a05",
   storageBucket: "mibodaideal-c0a05.firebasestorage.app",
   messagingSenderId: "10917823148",
-  appId: "1:10917823148:web:a562c3da349597b2461509"
+  appId: "1:10917823148:web:51bba8512568bc5b461509"
 };
 
 // --- FIN DE LAS INSTRUCCIONES ---
@@ -38,10 +38,4 @@ const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0
 export const db = getFirestore(app);
 export const auth = getAuth(app);
 
-
-// Comprobamos si la configuración parece ser la de marcador de posición
-if (firebaseConfig.apiKey === "AIzaSyAZlZ4WwqCdSwrhmYGldGBEdxMxr4eOn_0") {
-    console.warn("ADVERTENCIA: Estás utilizando la configuración de Firebase de marcador de posición. Por favor, actualiza `services/firebase.ts` con tus propias credenciales para que la aplicación funcione correctamente.");
-} else {
-     console.log("Firebase connected with provided credentials. Firestore and Auth instances exported.");
-}
+console.log("Firebase connected with provided credentials. Firestore and Auth instances exported.");

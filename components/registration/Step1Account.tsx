@@ -1,19 +1,21 @@
 import React from 'react';
-import { VENDOR_CATEGORIES } from '../../constants';
+
 interface Step1AccountProps {
     nextStep: () => void;
     handleChange: (input: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
-    values: any;
+    values: any; // Will be a subset of RegistrationFormData or ClientRegistrationFormData
     isClientRegistration?: boolean;
 }
+
 const Step1Account: React.FC<Step1AccountProps> = ({ nextStep, handleChange, values, isClientRegistration }) => {
     const continueStep = (e: React.FormEvent) => {
         e.preventDefault();
         let isValid = false;
+
         if (isClientRegistration) {
-            isValid = values.name && values.email && values.password.length >= 6;
+            isValid = values.name && values.email && values.password && values.password.length >= 6;
         } else {
-            isValid = values.companyName && values.email && values.password.length >= 6;
+            isValid = values.contactPersonName && values.contactPersonLastName && values.contactPersonRut && values.contactPersonPhone && values.contactPersonEmail && values.password && values.password.length >= 6;
         }
 
         if (isValid) {
@@ -26,59 +28,93 @@ const Step1Account: React.FC<Step1AccountProps> = ({ nextStep, handleChange, val
     return (
         <form onSubmit={continueStep} className="animate-fade-in">
             <h2 className="text-2xl font-serif font-bold text-brand-dark mb-6">
-                {isClientRegistration ? '1. Crea tu Cuenta' : '1. Información de tu Empresa'}
+                {isClientRegistration ? '1. Crea tu Cuenta' : '1. Datos Personales del Contacto'}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                 {isClientRegistration ? (
-                    <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-brand-dark mb-1">Tu Nombre</label>
-                        <input
-                            type="text"
-                            id="name"
-                            value={values.name}
-                            onChange={handleChange('name')}
-                            className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
-                            required
-                        />
-                    </div>
+                    <>
+                        <div>
+                            <label htmlFor="name" className="block text-sm font-medium text-brand-dark mb-1">Tu Nombre</label>
+                            <input
+                                type="text"
+                                id="name"
+                                value={values.name}
+                                onChange={handleChange('name')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="email" className="block text-sm font-medium text-brand-dark mb-1">Correo Electrónico</label>
+                            <input
+                                type="email"
+                                id="email"
+                                value={values.email}
+                                onChange={handleChange('email')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                    </>
                 ) : (
-                    <div>
-                        <label htmlFor="companyName" className="block text-sm font-medium text-brand-dark mb-1">Nombre de la Empresa</label>
-                        <input
-                            type="text"
-                            id="companyName"
-                            value={values.companyName}
-                            onChange={handleChange('companyName')}
-                            className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
-                            required
-                        />
-                    </div>
+                    <>
+                        <div>
+                            <label htmlFor="contactPersonName" className="block text-sm font-medium text-brand-dark mb-1">Nombre</label>
+                            <input
+                                type="text"
+                                id="contactPersonName"
+                                value={values.contactPersonName}
+                                onChange={handleChange('contactPersonName')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="contactPersonLastName" className="block text-sm font-medium text-brand-dark mb-1">Apellido</label>
+                            <input
+                                type="text"
+                                id="contactPersonLastName"
+                                value={values.contactPersonLastName}
+                                onChange={handleChange('contactPersonLastName')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="contactPersonRut" className="block text-sm font-medium text-brand-dark mb-1">RUT</label>
+                            <input
+                                type="text"
+                                id="contactPersonRut"
+                                value={values.contactPersonRut}
+                                onChange={handleChange('contactPersonRut')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="contactPersonPhone" className="block text-sm font-medium text-brand-dark mb-1">Número de Contacto</label>
+                            <input
+                                type="tel"
+                                id="contactPersonPhone"
+                                value={values.contactPersonPhone}
+                                onChange={handleChange('contactPersonPhone')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="contactPersonEmail" className="block text-sm font-medium text-brand-dark mb-1">Correo Electrónico (para iniciar sesión)</label>
+                            <input
+                                type="email"
+                                id="contactPersonEmail"
+                                value={values.contactPersonEmail}
+                                onChange={handleChange('contactPersonEmail')}
+                                className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
+                                required
+                            />
+                        </div>
+                    </>
                 )}
-                 {!isClientRegistration && (
-                    <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-brand-dark mb-1">Categoría Principal</label>
-                        <select
-                            id="category"
-                            value={values.category}
-                            onChange={handleChange('category')}
-                            className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
-                            required
-                        >
-                            {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                    </div>
-                )}
-                <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-brand-dark mb-1">Correo Electrónico</label>
-                    <input
-                        type="email"
-                        id="email"
-                        value={values.email}
-                        onChange={handleChange('email')}
-                        className="w-full p-3 border border-gray-300 rounded-md shadow-sm bg-white text-brand-dark focus:ring-brand-primary focus:border-brand-primary"
-                        required
-                    />
-                </div>
                  <div>
                     <label htmlFor="password" className="block text-sm font-medium text-brand-dark mb-1">Crea una Contraseña</label>
                     <input

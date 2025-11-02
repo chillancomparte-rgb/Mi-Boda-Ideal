@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import type { AdminUser } from '../../types';
 import { db } from '../../services/firebase';
-import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, query, where, setDoc } from 'firebase/firestore';
 import { auth } from '../../services/firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
+import { sendPasswordResetEmail, createUserWithEmailAndPassword } from 'firebase/auth';
 import { TrashIcon } from '../icons/TrashIcon';
 import { EditIcon } from '../icons/EditIcon';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
@@ -12,6 +12,13 @@ import { XIcon } from '../icons/XIcon';
 import { CHILE_REGIONS } from '../../constants';
 import { uploadImageToHosting } from '../../services/hostingUploadService';
 import { UploadCloudIcon } from '../icons/UploadCloudIcon';
+import { SettingsIcon } from '../icons/SettingsIcon'; // Importa el icono de configuración
+
+type UserRoleFilter = 'all' | 'admin' | 'vendor' | 'user';
+
+interface AdminUserFormData extends Partial<AdminUser> {
+    password?: string;
+}
 
 const AdminUsers: React.FC = () => {
     const [users, setUsers] = useState<AdminUser[]>([]);
@@ -20,19 +27,27 @@ const AdminUsers: React.FC = () => {
     const [regionFilter, setRegionFilter] = useState<string>('Todas');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
-    const [formData, setFormData] = useState<Partial<AdminUser>>({});
+    const [formData, setFormData] = useState<AdminUserFormData>({});
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [currentUserType, setCurrentUserType] = useState<UserRoleFilter>('all');
 
     const fetchUsers = async () => {
         setIsLoading(true);
         try {
             const usersCollectionRef = collection(db, 'users');
-            // FIX: Query to exclude the admin user from the client list.
-            const q = query(usersCollectionRef, where("email", "!=", "superadmin@mibodaideal.cl"));
+            const q = query(usersCollectionRef, where('role', 'in', ['admin', 'user']));
             const usersSnapshot = await getDocs(q);
             const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AdminUser[];
-            setUsers(usersList);
+            // Asegurarse de que el superadmin siempre tenga el rol 'admin' explícitamente
+            const processedUsers = usersList.map(user => {
+                if (user.email === 'superadmin@mibodaideal.cl') {
+                    return { ...user, role: 'admin' };
+                }
+                // Si no hay rol explícito, asignar 'user' por defecto o mantener el rol existente si es 'vendor'
+                return { ...user, role: user.role || 'user' };
+            });
+            setUsers(processedUsers);
         } catch (error) {
             console.error("Error fetching users: ", error);
         } finally {
@@ -46,7 +61,8 @@ const AdminUsers: React.FC = () => {
 
     const handleOpenModal = (user: AdminUser | null = null) => {
         setEditingUser(user);
-        setFormData(user ? { ...user } : { name: '', email: '', location: CHILE_REGIONS[0], weddingDate: '', phone: '' });
+        // Si se está creando un nuevo usuario, el rol por defecto es 'user'
+        setFormData(user ? { ...user } : { name: '', email: '', password: '', location: CHILE_REGIONS[0], weddingDate: '', phone: '', role: 'user' });
         setIsModalOpen(true);
     };
 
@@ -55,6 +71,7 @@ const AdminUsers: React.FC = () => {
         setEditingUser(null);
         setFormData({});
         setIsUploading(false);
+        fetchUsers(); // Refresh the user list when modal closes
     };
 
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -63,6 +80,7 @@ const AdminUsers: React.FC = () => {
 
         setIsUploading(true);
         try {
+            // Asegúrate de que 'uploadImageToHosting' esté importado y sea el servicio correcto
             const imageUrl = await uploadImageToHosting(file);
             setFormData(prev => ({ ...prev, avatarUrl: imageUrl }));
         } catch (error) {
@@ -78,8 +96,8 @@ const AdminUsers: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!formData.name || !formData.email) {
-            alert("Nombre y email son requeridos.");
+        if (!formData.name || !formData.email || !formData.role) {
+            alert("Nombre, email y rol son requeridos.");
             return;
         }
 
@@ -87,17 +105,49 @@ const AdminUsers: React.FC = () => {
         try {
             if (editingUser) {
                 // Update
+                // Solo se puede cambiar el rol a 'admin' si el usuario que edita es superadmin
+                if (editingUser.email === 'superadmin@mibodaideal.cl' && formData.role !== 'admin') {
+                    alert("No puedes cambiar el rol del superadmin.");
+                    setIsLoading(false);
+                    return;
+                }
                 const userDoc = doc(db, 'users', editingUser.id);
                 await updateDoc(userDoc, formData);
             } else {
-                // Create
-                await addDoc(collection(db, 'users'), { ...formData, registeredDate: new Date().toISOString() });
+                // Create new user
+                if (!formData.password) {
+                    alert("La contraseña es requerida para nuevos usuarios.");
+                    setIsLoading(false);
+                    return;
+                }
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+                    const firebaseUser = userCredential.user;
+
+                    await setDoc(doc(db, 'users', firebaseUser.uid), {
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email,
+                        name: formData.name,
+                        role: formData.role || 'user',
+                        registeredDate: new Date().toISOString(),
+                        location: formData.location || CHILE_REGIONS[0],
+                        weddingDate: formData.weddingDate || '',
+                        phone: formData.phone || '',
+                        avatarUrl: formData.avatarUrl || null,
+                        registrationType: 'email',
+                    });
+                } catch (authError: any) {
+                    console.error("Error creating user in Firebase Auth:", authError);
+                    alert(`Error al crear usuario en autenticación: ${authError.message}`);
+                    setIsLoading(false);
+                    return;
+                }
             }
             fetchUsers();
             handleCloseModal();
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error saving user: ", error);
-            alert("Ocurrió un error al guardar.");
+            alert(`Ocurrió un error al guardar: ${error.message}`);
         } finally {
             setIsLoading(false);
         }
@@ -105,14 +155,19 @@ const AdminUsers: React.FC = () => {
 
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
-            const searchMatch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                user.email.toLowerCase().includes(searchTerm.toLowerCase());
+            const searchMatch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                user.email?.toLowerCase().includes(searchTerm.toLowerCase());
             const regionMatch = regionFilter === 'Todas' || user.location === regionFilter;
-            return searchMatch && regionMatch;
+            const roleMatch = currentUserType === 'all' || user.role === currentUserType;
+            return searchMatch && regionMatch && roleMatch;
         });
-    }, [users, searchTerm, regionFilter]);
+    }, [users, searchTerm, regionFilter, currentUserType]);
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = async (id: string, userEmail: string) => {
+        if (userEmail === 'superadmin@mibodaideal.cl') {
+            alert("No se puede eliminar el usuario superadmin.");
+            return;
+        }
         if (window.confirm('¿Estás seguro de que quieres eliminar este usuario?')) {
             const userDoc = doc(db, 'users', id);
             try {
@@ -146,6 +201,28 @@ const AdminUsers: React.FC = () => {
                 <button onClick={() => handleOpenModal()} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent flex items-center">
                     <PlusCircleIcon className="h-5 w-5 mr-2"/>
                     Añadir Usuario
+                </button>
+            </div>
+
+            <div className="flex gap-4 mb-6">
+                <button 
+                    onClick={() => setCurrentUserType('all')}
+                    className={`px-4 py-2 rounded-md ${currentUserType === 'all' ? 'bg-brand-primary text-white' : 'bg-gray-200 text-gray-800'}`}
+                >
+                    Todos
+                </button>
+                <button 
+                    onClick={() => setCurrentUserType('admin')}
+                    className={`px-4 py-2 rounded-md ${currentUserType === 'admin' ? 'bg-brand-primary text-white' : 'bg-gray-200 text-gray-800'}`}
+                >
+                    Administradores
+                </button>
+
+                <button 
+                    onClick={() => setCurrentUserType('user')}
+                    className={`px-4 py-2 rounded-md ${currentUserType === 'user' ? 'bg-brand-primary text-white' : 'bg-gray-200 text-gray-800'}`}
+                >
+                    Clientes
                 </button>
             </div>
 
@@ -186,6 +263,7 @@ const AdminUsers: React.FC = () => {
                             <tr>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Usuario</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Teléfono</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Registro</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha de Boda</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo de Registro</th>
@@ -206,19 +284,26 @@ const AdminUsers: React.FC = () => {
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.phone || 'No ingresado'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {user.role === 'admin' ? 'N/A' : (user.phone || 'No ingresado')}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.role || 'user'}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{new Date(user.registeredDate).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.weddingDate ? new Date(user.weddingDate).toLocaleDateString() : 'No definida'}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{user.registrationType || 'email'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                        {user.role !== 'user' ? 'N/A' : (user.weddingDate ? new Date(user.weddingDate).toLocaleDateString() : 'No definida')}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">
+                                        {user.role !== 'user' ? 'N/A' : (user.registrationType || 'email')}
+                                    </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                         <div className="flex items-center space-x-3">
                                             <button onClick={() => handlePasswordReset(user.email)} className="text-gray-400 hover:text-orange-500" title="Restablecer Contraseña">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M12 11V7"></path><path d="M12 15h.01"></path></svg>
+                                                <SettingsIcon className="h-5 w-5"/>
                                             </button>
                                             <button onClick={() => handleOpenModal(user)} className="text-gray-400 hover:text-blue-600" title="Editar Usuario">
                                                 <EditIcon className="h-5 w-5"/>
                                             </button>
-                                            <button onClick={() => handleDelete(user.id)} className="text-gray-400 hover:text-red-700" title="Eliminar Usuario">
+                                            <button onClick={() => handleDelete(user.id, user.email)} className="text-gray-400 hover:text-red-700" title="Eliminar Usuario">
                                                 <TrashIcon className="h-5 w-5"/>
                                             </button>
                                         </div>
@@ -247,30 +332,51 @@ const AdminUsers: React.FC = () => {
                                     <label className="block text-sm font-medium text-gray-700">Email</label>
                                     <input type="email" name="email" value={formData.email || ''} onChange={handleFormChange} className={modalInputStyle} required />
                                 </div>
+                                {!editingUser && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Contraseña</label>
+                                        <input type="password" name="password" value={formData.password || ''} onChange={handleFormChange} className={modalInputStyle} required />
+                                    </div>
+                                )}
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700">Teléfono (opcional)</label>
-                                    <input type="tel" name="phone" value={formData.phone || ''} onChange={handleFormChange} className={modalInputStyle} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Ubicación</label>
-                                    <select name="location" value={formData.location || ''} onChange={handleFormChange} className={modalInputStyle}>
-                                        {CHILE_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                    <label className="block text-sm font-medium text-gray-700">Rol</label>
+                                    <select name="role" value={formData.role || 'user'} onChange={handleFormChange} className={modalInputStyle} required>
+                                        <option value="user">Cliente</option>
+                                        <option value="admin">Admin</option>
                                     </select>
                                 </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Fecha de Boda (opcional)</label>
-                                    <input type="date" name="weddingDate" value={formData.weddingDate || ''} onChange={handleFormChange} className={modalInputStyle} />
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Avatar del Usuario</label>
-                                    <div className="mt-1 flex items-center gap-4">
-                                        <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
-                                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
-                                            {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
-                                        </button>
+                                { (formData.role === 'vendor' || formData.role === 'user') && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Teléfono (opcional)</label>
+                                            <input type="tel" name="phone" value={formData.phone || ''} onChange={handleFormChange} className={modalInputStyle} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Ubicación</label>
+                                            <select name="location" value={formData.location || ''} onChange={handleFormChange} className={modalInputStyle}>
+                                                {CHILE_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
+                                { formData.role === 'user' && (
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700">Fecha de Boda (opcional)</label>
+                                        <input type="date" name="weddingDate" value={formData.weddingDate || ''} onChange={handleFormChange} className={modalInputStyle} />
                                     </div>
-                                    {formData.avatarUrl && <img src={formData.avatarUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}
-                                </div>
+                                )}
+                                { (formData.role === 'vendor' || formData.role === 'user') && (
+                                    <div className="md:col-span-2">
+                                        <label className="block text-sm font-medium text-gray-700">Avatar del Usuario</label>
+                                        <div className="mt-1 flex items-center gap-4">
+                                            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
+                                            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
+                                                {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
+                                            </button>
+                                        </div>
+                                        {formData.avatarUrl && <img src={formData.avatarUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}
+                                    </div>
+                                )}
                             </div>
                             <div className="p-6 border-t bg-gray-50 flex justify-end gap-4">
                                 <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancelar</button>

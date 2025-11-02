@@ -7,8 +7,9 @@ import { UsersIcon } from '../icons/UsersIcon';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
 import { FileTextIcon } from '../icons/FileTextIcon';
 import { ImageIcon } from '../icons/ImageIcon';
+import { SettingsIcon } from '../icons/SettingsIcon';
 
-type AdminView = 'dashboard' | 'providers' | 'users' | 'content' | 'hero-slider';
+type AdminView = 'dashboard' | 'providers' | 'users' | 'content' | 'hero-slider' | 'settings';
 
 interface AdminSidebarProps {
     currentView: AdminView;
@@ -24,6 +25,7 @@ const AdminSidebar: React.FC<AdminSidebarProps> = ({ currentView, setCurrentView
         { id: 'users' as AdminView, label: 'Usuarios', icon: <UsersIcon className="h-5 w-5" /> },
         { id: 'content' as AdminView, label: 'Contenido', icon: <FileTextIcon className="h-5 w-5" /> },
         { id: 'hero-slider' as AdminView, label: 'Hero Principal', icon: <ImageIcon className="h-5 w-5" /> },
+        { id: 'settings' as AdminView, label: 'Configuración', icon: <SettingsIcon className="h-5 w-5" /> },
     ];
 
     return (

@@ -15,18 +15,31 @@ import RegistrationPage from './pages/RegistrationPage';
 import ClientRegistrationPage from './pages/ClientRegistrationPage';
 import AdminPage from './pages/AdminPage';
 import AuthModal from './components/modals/AuthModal';
+import RoleSelectionModal from './components/modals/RoleSelectionModal'; // Importar el nuevo modal
+import { db } from './services/firebase';
+import { collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
 import type { Page, Vendor, Inspiration } from './types';
 import { VENDOR_CATEGORIES } from './constants';
 import { useAuth } from './hooks/useAuth';
 import Spinner from './components/Spinner';
+import { getGeneralSettings, initializeDefaultSettings } from './services/configService';
+import { GeneralSettings } from './types/config';
+import MaintenancePage from './pages/MaintenancePage';
+import GeneralAnnouncement from './components/GeneralAnnouncement';
+import UserAnnouncement from './components/UserAnnouncement';
 
 
 const App: React.FC = () => {
     const [currentPage, setCurrentPage] = useState<Page>('home');
     const [selectedVendor, setSelectedVendor] = useState<Vendor | null>(null);
-    const [selectedInspiration, setSelectedInspiration] = useState<Inspiration | null>(null);
+    const [selectedInspiration, setSelectedInpiration] = useState<Inspiration | null>(null);
     const [currentCategory, setCurrentCategory] = useState<string>('');
     const [persistentRegion, setPersistentRegion] = useState<string | null>(null);
+    const [generalSettings, setGeneralSettings] = useState<GeneralSettings | null>(null);
+    const [settingsLoading, setSettingsLoading] = useState(true);
+    const [showGeneralAnnouncement, setShowGeneralAnnouncement] = useState(true);
+    const [showUserAnnouncement, setShowUserAnnouncement] = useState(true);
+    const [showRoleSelectionModal, setShowRoleSelectionModal] = useState(false); // Nuevo estado
     
     const [authModalState, setAuthModalState] = useState({ isOpen: false, view: 'login' as 'login' | 'signup' });
 
@@ -35,16 +48,50 @@ const App: React.FC = () => {
     const isVendor = user?.role === 'vendor';
     const isCouple = user?.role === 'user';
 
+    useEffect(() => {
+        const fetchSettingsAndInitialize = async () => {
+            await initializeDefaultSettings();
+            const settings = await getGeneralSettings();
+            setGeneralSettings(settings);
+            setSettingsLoading(false);
+        };
+        fetchSettingsAndInitialize();
+
+        const path = window.location.pathname;
+        const match = path.match(/\/vendor\/([^/]+)/);
+        if (match) {
+            const vendorId = match[1];
+            const fetchVendor = async () => {
+                try {
+                    const vendorDocRef = doc(db, 'vendors', vendorId);
+                    const vendorDocSnap = await getDoc(vendorDocRef);
+                    if (vendorDocSnap.exists()) {
+                        const vendorData = { id: vendorDocSnap.id, ...vendorDocSnap.data() } as Vendor;
+                        setSelectedVendor(vendorData);
+                        setCurrentPage('vendor-profile');
+                    } else {
+                        console.warn(`Vendor with ID ${vendorId} not found.`);
+                        setCurrentPage('home'); // Fallback to home if vendor not found
+                    }
+                } catch (error) {
+                    console.error("Error fetching vendor from URL: ", error);
+                    setCurrentPage('home'); // Fallback to home on error
+                }
+            };
+            fetchVendor();
+        }
+    }, []);
+
     const navigate = useCallback((page: Page, data?: Vendor | Inspiration, category?: string) => {
         if (page === 'vendor-profile' && data && 'startingPrice' in data) {
             setSelectedVendor(data);
-            setSelectedInspiration(null);
+            setSelectedInpiration(null);
         } else if (page === 'inspiration-detail' && data && 'imageSearchTerms' in data) {
-            setSelectedInspiration(data);
+            setSelectedInpiration(data);
             setSelectedVendor(null);
         } else {
             setSelectedVendor(null);
-            setSelectedInspiration(null);
+            setSelectedInpiration(null);
         }
         setCurrentCategory(category || '');
         setCurrentPage(page);
@@ -56,6 +103,13 @@ const App: React.FC = () => {
     };
     const closeAuthModal = () => {
         setAuthModalState({ isOpen: false, view: 'login' });
+    };
+
+    const handleSignupClick = () => {
+        setShowRoleSelectionModal(true); // Abrir el modal de selección de rol
+    };
+    const closeRoleSelectionModal = () => {
+        setShowRoleSelectionModal(false);
     };
 
     const [favorites, setFavorites] = useState<Vendor[]>(() => {
@@ -121,12 +175,17 @@ const App: React.FC = () => {
     
     // --- RENDER LOGIC ---
 
-    // 1. Master Loading State: Wait for authentication to resolve.
-    if (authLoading) {
+    // 1. Master Loading State: Wait for authentication and settings to resolve.
+    if (authLoading || settingsLoading) {
         return <div className="flex min-h-screen items-center justify-center"><Spinner /></div>;
     }
 
-    // 2. Page Component Selection with Route Protection
+    // 2. Maintenance Mode Check
+    if (generalSettings?.maintenanceMode && !isAdmin) {
+        return <MaintenancePage />;
+    }
+
+    // 3. Page Component Selection with Route Protection
     let pageComponent;
 
     // A small component to render while we trigger a safe redirection.
@@ -191,7 +250,7 @@ const App: React.FC = () => {
     }
 
 
-    // 3. Render the chosen component within the correct layout
+    // 4. Render the chosen component within the correct layout
     if (currentPage === 'admin' && isAdmin) {
         // Admin page has its own full-screen layout
         return pageComponent;
@@ -200,12 +259,23 @@ const App: React.FC = () => {
     // Standard layout for all other pages
     return (
         <div className="flex flex-col min-h-screen bg-brand-light font-sans">
-            <Header navigate={navigate} currentPage={currentPage} onLoginClick={() => openAuthModal('login')} onSignupClick={() => openAuthModal('signup')}/>
+            {generalSettings?.generalAnnouncement && showGeneralAnnouncement && (
+                <GeneralAnnouncement message={generalSettings.generalAnnouncement} onClose={() => setShowGeneralAnnouncement(false)} />
+            )}
+            {generalSettings && (generalSettings.vendorAnnouncement || generalSettings.clientAnnouncement) && showUserAnnouncement && (
+                <UserAnnouncement 
+                    vendorMessage={generalSettings.vendorAnnouncement}
+                    clientMessage={generalSettings.clientAnnouncement}
+                    onClose={() => setShowUserAnnouncement(false)}
+                />
+            )}
+            <Header navigate={navigate} currentPage={currentPage} onLoginClick={() => openAuthModal('login')} onSignupClick={handleSignupClick}/>
             <main className="flex-grow">
                 {pageComponent}
             </main>
             <Footer navigate={navigate} />
             <AuthModal isOpen={authModalState.isOpen} onClose={closeAuthModal} initialView={authModalState.view} />
+            <RoleSelectionModal isOpen={showRoleSelectionModal} onClose={closeRoleSelectionModal} navigate={navigate} />
         </div>
     );
 };

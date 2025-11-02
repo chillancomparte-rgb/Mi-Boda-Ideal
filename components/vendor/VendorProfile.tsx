@@ -43,7 +43,19 @@ const VendorProfile: React.FC = () => {
                     setVendorData(data);
                     setFormData(data);
                 } else {
-                    console.log("No vendor profile found for this user.");
+                    // If no vendor profile found, initialize form for creation
+                    setVendorData(null); // Explicitly set to null for creation mode
+                    setFormData({
+                        name: user.displayName || '',
+                        email: user.email || '',
+                        category: VENDOR_CATEGORIES[0],
+                        location: CHILE_REGIONS[0],
+                        phone: '',
+                        description: '',
+                        gallery: [],
+                        // Add any other default fields required for a new vendor
+                    });
+                    console.log("No vendor profile found for this user. Initializing for creation.");
                 }
             } catch (error) {
                 console.error("Error fetching vendor profile:", error);
@@ -94,8 +106,19 @@ const VendorProfile: React.FC = () => {
         setIsSaving(true);
         setSuccessMessage('');
         try {
-            const vendorDocRef = doc(db, 'vendors', vendorData.id);
-           await updateDoc(vendorDocRef, { ...formData });
+            if (vendorData && vendorData.id) {
+                // Update existing vendor
+                const vendorDocRef = doc(db, 'vendors', vendorData.id);
+                await updateDoc(vendorDocRef, { ...formData });
+            } else {
+                // Create new vendor
+                const newVendorRef = await addDoc(collection(db, 'vendors'), {
+                    ...formData,
+                    email: user?.email, // Ensure email is set from auth user
+                    // Add any other fields that should be set on creation
+                });
+                setVendorData({ id: newVendorRef.id, ...formData, email: user?.email } as AdminVendor);
+            }
             setSuccessMessage('¡Perfil actualizado con éxito!');
             setTimeout(() => setSuccessMessage(''), 3000);
         } catch (error) {

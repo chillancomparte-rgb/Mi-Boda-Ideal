@@ -145,6 +145,7 @@ export interface AdminUser {
     phone?: string;
     avatarUrl?: string;
     registrationType?: 'email' | 'google';
+    role?: 'admin' | 'user' | 'vendor';
 }
 
 export interface AdminVendor {
@@ -152,15 +153,25 @@ export interface AdminVendor {
     name: string;
     category: string;
     location: string;
-    email: string;
+    email: string; // Este será el email de la empresa
+    companyEmail?: string; // Nuevo campo para el email de la empresa
     phone?: string;
     registeredDate: string; // Consider using Firestore Timestamp in real app
     status: VendorStatus;
     isPremium?: boolean;
     logoUrl?: string;
-    // FIX: Add gallery property to match usage in VendorProfile.tsx
     gallery?: string[];
     registrationType?: 'email' | 'google';
+    // Datos públicos de la empresa (redes sociales)
+    facebookUrl?: string;
+    instagramUrl?: string;
+    websiteUrl?: string;
+    // Datos personales del contacto (solo para admin)
+    contactPersonName?: string;
+    contactPersonLastName?: string;
+    contactPersonRut?: string;
+    contactPersonPhone?: string;
+    contactPersonEmail?: string; // Nuevo campo para el email del contacto personal
 }
 
 export interface HeroSlide {

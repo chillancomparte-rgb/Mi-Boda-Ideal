@@ -8,8 +8,10 @@ import AdminUsers from '../components/admin/AdminUsers';
 import AdminHeader from '../components/admin/AdminHeader';
 import AdminContent from '../components/admin/AdminContent';
 import AdminHeroSlider from '../components/admin/AdminHeroSlider';
+import AdminSettingsGeneral from '../components/admin/AdminSettingsGeneral';
+import AdminVendors from '../components/admin/AdminVendors'; // Importar el nuevo componente
 
-type AdminView = 'dashboard' | 'providers' | 'users' | 'content' | 'hero-slider';
+type AdminView = 'dashboard' | 'providers' | 'users' | 'content' | 'hero-slider' | 'settings';
 
 interface AdminPageProps {
     navigate: (page: Page) => void;
@@ -23,13 +25,15 @@ const AdminPage: React.FC<AdminPageProps> = ({ navigate }) => {
             case 'dashboard':
                 return <AdminDashboard />;
             case 'providers':
-                return <AdminProviders />;
+                return <AdminVendors navigate={navigate} />; // Renderizar AdminVendors aquí
             case 'users':
                 return <AdminUsers />;
             case 'content':
                 return <AdminContent />;
             case 'hero-slider':
                 return <AdminHeroSlider />;
+            case 'settings':
+                return <AdminSettingsGeneral />;
             default:
                 return <AdminDashboard />;
         }
