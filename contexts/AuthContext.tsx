@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import { auth, db } from '../services/firebase';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import {
     onAuthStateChanged,
     createUserWithEmailAndPassword,

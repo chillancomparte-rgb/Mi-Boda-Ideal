@@ -228,18 +228,18 @@ const AdminProviders: React.FC = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {filteredVendors.map(vendor => (
                                 <tr key={vendor.id}>
-                                    <td class="px-6 py-4 whitespace-nowrap">
-                                        <div class="flex items-center">
-                                            <div class="flex-shrink-0 h-10 w-10">
-                                                <img class="h-10 w-10 rounded-full object-cover" src={vendor.logoUrl || 'https://placehold.co/100'} alt={vendor.name} />
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center">
+                                            <div className="flex-shrink-0 h-10 w-10">
+                                                <img className="h-10 w-10 rounded-full object-cover" src={vendor.logoUrl || 'https://placehold.co/100'} alt={vendor.name} />
                                             </div>
-                                            <div class="ml-4">
-                                                <div class="text-sm font-medium text-gray-900">{vendor.name}</div>
-                                                <div class="text-sm text-gray-500">{vendor.email}</div>
+                                            <div className="ml-4">
+                                                <div className="text-sm font-medium text-gray-900">{vendor.name}</div>
+                                                <div className="text-sm text-gray-500">{vendor.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{vendor.phone || 'No ingresado'}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{vendor.phone || 'No ingresado'}</td>
                                      <td className="px-6 py-4 whitespace-nowrap text-center">
                                         {vendor.isPremium && <CrownIcon className="h-5 w-5 text-yellow-500" />}
                                     </td>
@@ -313,7 +313,7 @@ const AdminProviders: React.FC = () => {
                                     <label htmlFor="isPremium" className="ml-2 block text-sm font-medium text-gray-700">Es Premium</label>
                                 </div>
 
-                                <div class="md:col-span-2">
+                                <div className="md:col-span-2">
                                     <label className="block text-sm font-medium text-gray-700">Logo del Proveedor</label>
                                     <div className="mt-1 flex items-center gap-4">
                                         <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
