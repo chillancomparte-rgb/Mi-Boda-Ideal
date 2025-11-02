@@ -253,3 +253,4 @@ const Step2Contact: React.FC<Step2ContactProps> = ({ nextStep, prevStep, handleC
                             </button>
                         </div>
                     </form>
+    );
