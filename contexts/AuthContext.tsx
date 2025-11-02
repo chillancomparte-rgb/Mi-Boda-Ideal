@@ -1,7 +1,9 @@
-import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useState, useEffect, ReactNode, useContext } from 'react';
 import { auth, db } from '../services/firebase';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import {
+// FIX: Importamos todo lo que Firebase necesita
+import { 
+    GoogleAuthProvider, 
+    signInWithPopup,
     onAuthStateChanged,
     createUserWithEmailAndPassword,
     signInWithEmailAndPassword,
@@ -9,14 +11,45 @@ import {
     User as FirebaseUser
 } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, limit, updateDoc } from 'firebase/firestore';
-import type { User, AuthContextType } from '../types';
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+// --- DEFINICIÓN DE TIPOS (AQUÍ MISMO) ---
+// En lugar de un types.ts, lo ponemos todo aquí para estar seguros.
 
+// FIX: Añadimos 'registrationType' y todas las propiedades que usas
+export interface User {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  role: 'admin' | 'vendor' | 'user';
+  registrationType?: 'google' | 'email'; // <-- ARREGLO PARA EL ERROR TS2353
+  
+  // Propiedades opcionales que también usas al crear usuarios:
+  id?: string;
+  name?: string;
+  registeredDate?: string;
+  location?: string;
+  avatarUrl?: string;
+}
+
+// FIX: Añadimos las funciones que faltaban (signUp, logIn, logOut, signInWithGoogle)
+export interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signUp: (email: string, password: string) => Promise<any>;
+  logIn: (email: string, password: string) => Promise<any>;
+  logOut: () => Promise<void>;
+  signInWithGoogle: (role: 'user' | 'vendor') => Promise<any>; // <-- ARREGLO PARA EL ERROR TS2339
+}
+
+// Props para el componente AuthProvider
 interface AuthProviderProps {
     children: ReactNode;
 }
 
+// --- CREACIÓN DEL CONTEXTO ---
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+// --- COMPONENTE PROVIDER ---
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
@@ -27,7 +60,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                 let finalRole: User['role'];
                 let finalDisplayName = firebaseUser.displayName;
 
-                // Fetch user and vendor data in parallel for efficiency
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
                 const vendorsQuery = query(collection(db, 'vendors'), where("email", "==", firebaseUser.email), limit(1));
                 
@@ -36,20 +68,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     getDocs(vendorsQuery)
                 ]);
 
-                // Determine display name from the user's document if it exists
                 if (userDocSnap.exists()) {
                     finalDisplayName = userDocSnap.data().name || finalDisplayName;
                 }
 
-                // Determine role with a strict priority system
                 if (firebaseUser.email === 'superadmin@mibodaideal.cl') {
-                    finalRole = 'admin'; // 1. Highest priority: Superadmin
+                    finalRole = 'admin';
                 } else if (!vendorSnapshot.empty) {
-                    finalRole = 'vendor'; // 2. Second priority: Vendor
+                    finalRole = 'vendor';
                 } else if (userDocSnap.exists()) {
-                    finalRole = userDocSnap.data().role || 'user'; // 3. Fallback to user doc
+                    finalRole = userDocSnap.data().role || 'user';
                 } else {
-                    finalRole = 'user'; // 4. Ultimate fallback for new users
+                    finalRole = 'user';
                 }
                 
                 const appUser: User = {
@@ -57,6 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
                     email: firebaseUser.email,
                     displayName: finalDisplayName,
                     role: finalRole,
+                    // Este ya no dará error porque 'registrationType' está en la interface User
                     registrationType: userDocSnap.exists() ? userDocSnap.data().registrationType : (firebaseUser.providerData[0]?.providerId === 'google.com' ? 'google' : 'email'),
                 };
                 
@@ -75,15 +106,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const firebaseUser = userCredential.user;
         
-        // Create user document in Firestore
         await setDoc(doc(db, 'users', firebaseUser.uid), {
             id: firebaseUser.uid,
             email: firebaseUser.email,
             name: firebaseUser.email?.split('@')[0] || 'Nuevo Usuario',
-            role: 'user', // Default role for new signups
+            role: 'user', 
             registeredDate: new Date().toISOString(),
-            location: 'Desconocida', // Default location
+            location: 'Desconocida', 
             registrationType: 'email',
+            avatarUrl: null, // Agregado para consistencia
         });
         
         return userCredential;
@@ -98,28 +129,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     const signInWithGoogle = async (role: 'user' | 'vendor') => {
-        const provider = new GoogleAuthProvider();
+        const provider = new GoogleAuthProvider(); // <--- Esto ya no da error
         try {
-            const result = await signInWithPopup(auth, provider);
+            const result = await signInWithPopup(auth, provider); // <--- Esto ya no da error
             const firebaseUser = result.user;
             const userDocRef = doc(db, 'users', firebaseUser.uid);
             const userDocSnap = await getDoc(userDocRef);
 
             if (!userDocSnap.exists()) {
-                // New user, create document
                 await setDoc(userDocRef, {
                     id: firebaseUser.uid,
                     email: firebaseUser.email,
                     name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || 'Nuevo Usuario',
-                    role: role, // Set role based on where they signed up
+                    role: role,
                     registeredDate: new Date().toISOString(),
                     location: 'Desconocida',
                     avatarUrl: firebaseUser.photoURL,
                     registrationType: 'google',
                 });
             } else {
-                // Existing user, update if necessary (e.g., role if they signed up as vendor later)
-                // For simplicity, we'll just ensure registrationType is set
+                // Si ya existe, solo actualizamos el tipo de registro (o lo que necesites)
                 await updateDoc(userDocRef, { registrationType: 'google' });
             }
             return result;
@@ -135,7 +164,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         signUp,
         logIn,
         logOut,
-        signInWithGoogle,
+        signInWithGoogle, // <--- Esto ya no da error
     };
 
     return (
@@ -143,4 +172,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             {!loading && children}
         </AuthContext.Provider>
     );
+};
+
+// --- CUSTOM HOOK (para usarlo en otros archivos) ---
+// Esto te permite usar 'useAuth()' en lugar de 'useContext(AuthContext)'
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (context === undefined) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
 };

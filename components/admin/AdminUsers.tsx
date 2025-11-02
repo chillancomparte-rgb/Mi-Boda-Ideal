@@ -266,7 +266,7 @@ const AdminUsers: React.FC = () => {
                                     <div className="mt-1 flex items-center gap-4">
                                         <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
                                         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
-                                            {isUploading ? <Spinner size="sm" /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
+                                            {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
                                         </button>
                                     </div>
                                     {formData.avatarUrl && <img src={formData.avatarUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}

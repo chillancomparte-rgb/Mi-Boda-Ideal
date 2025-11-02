@@ -129,7 +129,7 @@ const AdminSettings: React.FC = () => {
                     <div className="flex items-center gap-4">
                         <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
                         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
-                            {isUploading ? <Spinner size="sm" /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Cambiar Logo</>}
+                            {isUploading ? <Spinner/> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Cambiar Logo</>}
                         </button>
                         {logoUrl && <img src={logoUrl} alt="Logo del sitio" className="h-16 w-auto rounded-md bg-gray-100 p-1" />}
                     </div>
