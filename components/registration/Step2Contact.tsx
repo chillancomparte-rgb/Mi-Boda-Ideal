@@ -1,3 +1,4 @@
+// FORZANDO ACTUALIZACION
 import React, { useState, useRef } from 'react';
 import { CHILE_REGIONS, VENDOR_CATEGORIES } from '../../constants';
 import { ArrowLeftIcon } from '../icons/ArrowLeftIcon';
