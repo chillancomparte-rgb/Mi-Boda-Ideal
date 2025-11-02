@@ -10,6 +10,7 @@ interface Step4ConfirmationProps {
     isSubmitting: boolean;
     submitError: string | null;
     isRegistrationSuccessful: boolean; // New prop
+    isClientRegistration?: boolean;
 }
 
 const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({ values, navigate, submitRegistration, isSubmitting, submitError, isRegistrationSuccessful }) => {
@@ -66,7 +67,7 @@ const Step4Confirmation: React.FC<Step4ConfirmationProps> = ({ values, navigate,
                             <div className="mt-4">
                                 <strong>Galería ({gallery.length} imágenes):</strong>
                                 <div className="grid grid-cols-3 gap-2 mt-2">
-                                    {gallery.map((url, index) => (
+                                    {gallery.map((url: string, index: number) => (
                                         <img key={index} src={url} alt={`Galería ${index + 1}`} className="w-full h-24 object-cover rounded-md" />
                                     ))}
                                 </div>

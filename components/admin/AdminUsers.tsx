@@ -42,12 +42,12 @@ const AdminUsers: React.FC = () => {
             // Asegurarse de que el superadmin siempre tenga el rol 'admin' explícitamente
             const processedUsers = usersList.map(user => {
                 if (user.email === 'superadmin@mibodaideal.cl') {
-                    return { ...user, role: 'admin' };
+                    return { ...user, role: 'admin' as 'admin' };
                 }
                 // Si no hay rol explícito, asignar 'user' por defecto o mantener el rol existente si es 'vendor'
-                return { ...user, role: user.role || 'user' };
+                return { ...user, role: (user.role || 'user') as 'admin' | 'user' | 'vendor' };
             });
-            setUsers(processedUsers);
+            setUsers(processedUsers as AdminUser[]);
         } catch (error) {
             console.error("Error fetching users: ", error);
         } finally {
@@ -112,7 +112,8 @@ const AdminUsers: React.FC = () => {
                     return;
                 }
                 const userDoc = doc(db, 'users', editingUser.id);
-                await updateDoc(userDoc, formData);
+                const { password, ...dataToUpdate } = formData;
+                await updateDoc(userDoc, dataToUpdate as Partial<AdminUser>);
             } else {
                 // Create new user
                 if (!formData.password) {

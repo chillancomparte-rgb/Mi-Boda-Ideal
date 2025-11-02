@@ -172,6 +172,7 @@ export interface AdminVendor {
     contactPersonRut?: string;
     contactPersonPhone?: string;
     contactPersonEmail?: string; // Nuevo campo para el email del contacto personal
+    description?: string;
 }
 
 export interface HeroSlide {

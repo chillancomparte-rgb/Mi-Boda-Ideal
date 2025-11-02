@@ -12,9 +12,11 @@ import { uploadImageToHosting } from '../../services/hostingUploadService';
 import { UploadCloudIcon } from '../icons/UploadCloudIcon';
 import { CrownIcon } from '../icons/CrownIcon'; // Importar CrownIcon
 
-interface VendorFormData extends Partial<AdminVendor> {}
+interface VendorFormData extends Partial<AdminVendor> {
+    description?: string;
+}
 
-const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiration, category?: string) => void }> = ({ navigate }) => {
+const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => void }> = ({ navigate }) => {
     const [vendors, setVendors] = useState<AdminVendor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -25,6 +27,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
     const [formData, setFormData] = useState<VendorFormData>({});
 
     const [isSaving, setIsSaving] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [selectedVendorContact, setSelectedVendorContact] = useState<AdminVendor | null>(null);
     const [activeTab, setActiveTab] = useState('company'); // New state for active tab
@@ -53,13 +56,18 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         setIsModalOpen(false);
         setEditingVendor(null);
         setFormData({});
-        setIsUploading(false);
+
         fetchVendors(); // Refresh the vendor list when modal closes
     };
 
     const handleOpenContactModal = (vendor: AdminVendor) => {
         setSelectedVendorContact(vendor);
         setIsContactModalOpen(true);
+    };
+
+    const handleCloseContactModal = () => {
+        setIsContactModalOpen(false);
+        setSelectedVendorContact(null);
     };
 
     const handleOpenModal = (vendor: AdminVendor | null = null) => {
@@ -224,7 +232,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                                             <div className="ml-4">
                                                 <div className="text-sm font-medium text-gray-900 flex items-center">
                                                     {vendor.name}
-                                                    {vendor.isPremium && <CrownIcon className="h-5 w-5 text-yellow-500 ml-2" title="Proveedor Premium" />}
+                                                    {vendor.isPremium && <CrownIcon className="h-5 w-5 text-yellow-500 ml-2" />}
                                                 </div>
                                                 <div className="text-sm text-gray-500">{vendor.email}</div>
                                             </div>

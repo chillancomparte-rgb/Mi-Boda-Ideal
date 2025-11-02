@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import { db } from '../../services/firebase';
-import { doc, getDoc, updateDoc, query, collection, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, query, collection, where, getDocs, limit, addDoc } from 'firebase/firestore';
 import type { AdminVendor } from '../../types';
 import Spinner from '../Spinner';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
