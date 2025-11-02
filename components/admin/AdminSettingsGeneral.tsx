@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getGeneralSettings, updateGeneralSettings, initializeDefaultSettings } from '../../services/configService';
-import { GeneralSettings } from '@types/config';
+import { GeneralSettings } from 'types/config';
 import Spinner from '../Spinner';
 
 const AdminSettingsGeneral: React.FC = () => {
@@ -22,8 +22,8 @@ const AdminSettingsGeneral: React.FC = () => {
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type, checked } = e.target as HTMLInputElement;
-        setSettings((prev: GeneralSettings) => ({
-            ...prev!,
+        setSettings((prev: GeneralSettings | null) => ({
+            ...(prev || {}),
             [name]: type === 'checkbox' ? checked : value,
         }));
     };
