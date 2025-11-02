@@ -1,17 +1,12 @@
 import React from 'react';
 import { VENDOR_CATEGORIES } from '../../constants';
-import { useAuth } from '../../hooks/useAuth';
-
 interface Step1AccountProps {
     nextStep: () => void;
     handleChange: (input: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
     values: any;
     isClientRegistration?: boolean;
 }
-
 const Step1Account: React.FC<Step1AccountProps> = ({ nextStep, handleChange, values, isClientRegistration }) => {
-    const { signInWithGoogle } = useAuth();
-
     const continueStep = (e: React.FormEvent) => {
         e.preventDefault();
         let isValid = false;
