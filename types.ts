@@ -153,6 +153,7 @@ export interface AdminVendor {
     name: string;
     category: string;
     location: string;
+    locations?: string[];
     email: string; // Este será el email de la empresa
     companyEmail?: string; // Nuevo campo para el email de la empresa
     phone?: string;

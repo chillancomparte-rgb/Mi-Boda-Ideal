@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="/assets/favicon-Co1z8jta.svg" type="image/svg+xml">
+    <title>Mi Boda Ideal - Tu Planificador de Bodas</title>
+    <meta id="meta-description" name="description" content="Una plataforma completa para planificar la boda de tus sueños. Encuentra proveedores, busca inspiración y gestiona tu presupuesto y lista de invitados, todo en un solo lugar." />
+    <meta id="meta-author" name="author" content="Mi Boda Ideal" />
+    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Nueva Fuente Final (Más Legible): Playfair Display & Montserrat -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Montserrat:wght@300;400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Ocultar la barra de desplazamiento en navegadores WebKit (Chrome, Safari) */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* Ocultar la barra de desplazamiento en IE, Edge y Firefox */
+        .scrollbar-hide {
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+
+        /* Definición de animaciones personalizadas */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .animate-fade-in-down {
+            animation: fadeInDown 0.3s ease-out;
+        }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Montserrat', 'sans-serif'],
+                        'serif': ['Playfair Display', 'serif'],
+                    },
+                    colors: {
+                        'brand-primary': '#c10681', // Fucsia Nupcial
+                        'brand-accent': '#a3056d',  // Fucsia Intenso (para :hover)
+                        'brand-secondary': '#FDE7F6', // Rosa Pálido
+                        'brand-dark': '#3C3633',     // Gris Pizarra (para texto)
+                        'brand-light': '#F5F5F5',    // Blanco Roto (para fondo)
+                    },
+                    typography: (theme) => ({
+                        DEFAULT: {
+                            css: {
+                                color: theme('colors.brand.dark'),
+                                a: {
+                                    color: theme('colors.brand.primary'),
+                                    '&:hover': {
+                                        color: theme('colors.brand.accent'),
+                                    },
+                                },
+                                h1: { color: theme('colors.brand.dark') },
+                                h2: { color: theme('colors.brand.dark') },
+                                h3: { color: theme('colors.brand.dark') },
+                                strong: { color: theme('colors.brand.dark') },
+                            },
+                        },
+                    }),
+                }
+            }
+        }
+    </script>
+
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.28.0",
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "firebase/": "https://aistudiocdn.com/firebase@^12.5.0/",
+    "vite": "https://aistudiocdn.com/vite@^7.1.12",
+    "uuid": "https://aistudiocdn.com/uuid@^13.0.0"
+  }
+}
+</script>
+  <script type="module" crossorigin src="/assets/index-C61Ebjde.js"></script>
+</head>
+<body class="bg-brand-light">
+    <div id="root"></div>
+</body>
+</html>
