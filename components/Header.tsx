@@ -16,7 +16,7 @@ import { XIcon } from './icons/XIcon';
 
 
 interface HeaderProps {
-    navigate: (page: Page, vendor?: any, category?: string) => void;
+    navigate: (page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => void;
     currentPage: Page;
     onLoginClick: () => void;
     onSignupClick: () => void;

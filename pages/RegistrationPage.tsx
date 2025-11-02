@@ -5,7 +5,6 @@ import { WeddingRingIcon } from '../components/icons/WeddingRingIcon';
 import RegistrationProgress from '../components/registration/RegistrationProgress';
 import Step1Account from '../components/registration/Step1Account';
 import Step2Contact from '../components/registration/Step2Contact';
-import Step3Gallery from '../components/registration/Step3Gallery';
 import Step4Confirmation from '../components/registration/Step4Confirmation';
 import { auth, db } from '../services/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -180,8 +179,6 @@ const RegistrationPage: React.FC<RegistrationPageProps> = ({ navigate }) => {
                     logoUrl: formData.logoUrl,
                 }} isUploadingLogo={isUploadingLogo} />;
             case 3:
-                return <Step3Gallery nextStep={nextStep} prevStep={prevStep} addGalleryImage={addGalleryImage} removeGalleryImage={removeGalleryImage} values={{ gallery: formData.gallery }} />;
-            case 4:
                 return <Step4Confirmation values={formData} navigate={navigate} submitRegistration={submitRegistration} isSubmitting={isSubmitting} submitError={submitError} isRegistrationSuccessful={isRegistrationSuccessful} />;
             default:
                 return <div>Paso no encontrado</div>;

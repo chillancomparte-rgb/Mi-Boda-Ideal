@@ -323,59 +323,82 @@ const AdminUsers: React.FC = () => {
                             <h2 className="text-xl font-bold">{editingUser ? 'Editar Usuario' : 'Añadir Usuario'}</h2>
                             <button onClick={handleCloseModal}><XIcon className="h-6 w-6 text-gray-500 hover:text-gray-800"/></button>
                         </div>
+                        <div className="flex border-b border-gray-200">
+                            <button
+                                className={`py-2 px-4 text-sm font-medium ${activeAccordionTab === 'account' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                onClick={() => setActiveAccordionTab('account')}
+                            >
+                                Información de la Cuenta
+                            </button>
+                            <button
+                                className={`py-2 px-4 text-sm font-medium ${activeAccordionTab === 'profile' ? 'border-b-2 border-brand-primary text-brand-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                                onClick={() => setActiveAccordionTab('profile')}
+                            >
+                                Detalles del Perfil
+                            </button>
+                        </div>
                         <form onSubmit={handleSubmit}>
-                            <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium text-gray-700">Nombre</label>
-                                    <input type="text" name="name" value={formData.name || ''} onChange={handleFormChange} className={modalInputStyle} required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Email</label>
-                                    <input type="email" name="email" value={formData.email || ''} onChange={handleFormChange} className={modalInputStyle} required />
-                                </div>
-                                {!editingUser && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Contraseña</label>
-                                        <input type="password" name="password" value={formData.password || ''} onChange={handleFormChange} className={modalInputStyle} required />
-                                    </div>
-                                )}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700">Rol</label>
-                                    <select name="role" value={formData.role || 'user'} onChange={handleFormChange} className={modalInputStyle} required>
-                                        <option value="user">Cliente</option>
-                                        <option value="admin">Admin</option>
-                                    </select>
-                                </div>
-                                { (formData.role === 'vendor' || formData.role === 'user') && (
-                                    <>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700">Teléfono (opcional)</label>
-                                            <input type="tel" name="phone" value={formData.phone || ''} onChange={handleFormChange} className={modalInputStyle} />
+                            <div className="p-6">
+                                {activeAccordionTab === 'account' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Nombre</label>
+                                            <input type="text" name="name" value={formData.name || ''} onChange={handleFormChange} className={modalInputStyle} required />
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700">Ubicación</label>
-                                            <select name="location" value={formData.location || ''} onChange={handleFormChange} className={modalInputStyle}>
-                                                {CHILE_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                            <label className="block text-sm font-medium text-gray-700">Email</label>
+                                            <input type="email" name="email" value={formData.email || ''} onChange={handleFormChange} className={modalInputStyle} required />
+                                        </div>
+                                        {!editingUser && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">Contraseña</label>
+                                                <input type="password" name="password" value={formData.password || ''} onChange={handleFormChange} className={modalInputStyle} required />
+                                            </div>
+                                        )}
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Rol</label>
+                                            <select name="role" value={formData.role || 'user'} onChange={handleFormChange} className={modalInputStyle} required>
+                                                <option value="user">Cliente</option>
+                                                <option value="admin">Admin</option>
                                             </select>
                                         </div>
-                                    </>
-                                )}
-                                { formData.role === 'user' && (
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700">Fecha de Boda (opcional)</label>
-                                        <input type="date" name="weddingDate" value={formData.weddingDate || ''} onChange={handleFormChange} className={modalInputStyle} />
                                     </div>
                                 )}
-                                { (formData.role === 'vendor' || formData.role === 'user') && (
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700">Avatar del Usuario</label>
-                                        <div className="mt-1 flex items-center gap-4">
-                                            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
-                                            <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
-                                                {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
-                                            </button>
-                                        </div>
-                                        {formData.avatarUrl && <img src={formData.avatarUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}
+
+                                {activeAccordionTab === 'profile' && (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        { (formData.role === 'vendor' || formData.role === 'user') && (
+                                            <>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">Teléfono (opcional)</label>
+                                                    <input type="tel" name="phone" value={formData.phone || ''} onChange={handleFormChange} className={modalInputStyle} />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-medium text-gray-700">Ubicación</label>
+                                                    <select name="location" value={formData.location || ''} onChange={handleFormChange} className={modalInputStyle}>
+                                                        {CHILE_REGIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                                                    </select>
+                                                </div>
+                                            </>
+                                        )}
+                                        { formData.role === 'user' && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">Fecha de Boda (opcional)</label>
+                                                <input type="date" name="weddingDate" value={formData.weddingDate || ''} onChange={handleFormChange} className={modalInputStyle} />
+                                            </div>
+                                        )}
+                                        { (formData.role === 'vendor' || formData.role === 'user') && (
+                                            <div className="md:col-span-2">
+                                                <label className="block text-sm font-medium text-gray-700">Avatar del Usuario</label>
+                                                <div className="mt-1 flex items-center gap-4">
+                                                    <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
+                                                    <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-md hover:bg-gray-700 disabled:bg-gray-400 flex items-center justify-center">
+                                                        {isUploading ? <Spinner /> : <><UploadCloudIcon className="h-5 w-5 mr-2"/> Subir Avatar</>}
+                                                    </button>
+                                                </div>
+                                                {formData.avatarUrl && <img src={formData.avatarUrl} alt="Preview" className="mt-4 w-32 h-32 rounded-full object-cover" />}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

@@ -254,7 +254,28 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                                             <button onClick={() => handleDelete(vendor.id)} className="text-gray-400 hover:text-red-700" title="Eliminar Proveedor">
                                                 <TrashIcon className="h-5 w-5"/>
                                             </button>
-                                            <button onClick={() => navigate('vendor-profile', vendor)} className="text-gray-400 hover:text-green-600" title="Ver Perfil">
+                                            <button onClick={async () => {
+                                                if (vendor.id) {
+                                                    const vendorDocRef = doc(db, 'vendors', vendor.id);
+                                                    const vendorDocSnap = await getDoc(vendorDocRef);
+                                                    if (vendorDocSnap.exists()) {
+                                                        const fullVendorData = { id: vendorDocSnap.id, ...vendorDocSnap.data() } as AdminVendor;
+                                                        const mappedVendor: Vendor = {
+                                                            id: fullVendorData.id,
+                                                            name: fullVendorData.name,
+                                                            category: fullVendorData.category,
+                                                            location: fullVendorData.location,
+                                                            city: fullVendorData.location, // Asumiendo que location es la ciudad/región
+                                                            rating: 0, // Valor por defecto, AdminVendor no tiene rating
+                                                            description: fullVendorData.description || '',
+                                                            imageUrl: fullVendorData.logoUrl || '', // Asumiendo logoUrl como imagen principal
+                                                            startingPrice: 0, // Valor por defecto, AdminVendor no tiene startingPrice
+                                                            isPremium: fullVendorData.isPremium,
+                                                        };
+                                                        navigate('vendor-profile', mappedVendor);
+                                                    }
+                                                }
+                                            }} className="text-gray-400 hover:text-green-600" title="Ver Perfil">
                                                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                                                     <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
                                                 </svg>

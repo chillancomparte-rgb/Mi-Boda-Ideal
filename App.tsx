@@ -57,42 +57,94 @@ const App: React.FC = () => {
         };
         fetchSettingsAndInitialize();
 
-        const path = window.location.pathname;
-        const match = path.match(/\/vendor\/([^/]+)/);
-        if (match) {
-            const vendorId = match[1];
-            const fetchVendor = async () => {
-                try {
-                    const vendorDocRef = doc(db, 'vendors', vendorId);
-                    const vendorDocSnap = await getDoc(vendorDocRef);
-                    if (vendorDocSnap.exists()) {
-                        const vendorData = { id: vendorDocSnap.id, ...vendorDocSnap.data() } as Vendor;
-                        setSelectedVendor(vendorData);
-                        setCurrentPage('vendor-profile');
-                    } else {
-                        console.warn(`Vendor with ID ${vendorId} not found.`);
-                        setCurrentPage('home'); // Fallback to home if vendor not found
-                    }
-                } catch (error) {
-                    console.error("Error fetching vendor from URL: ", error);
-                    setCurrentPage('home'); // Fallback to home on error
+        const handlePopState = (event: PopStateEvent) => {
+            if (event.state) {
+                setCurrentPage(event.state.page);
+                setSelectedVendor(event.state.data && 'startingPrice' in event.state.data ? event.state.data : null);
+                setSelectedInpiration(event.state.data && 'imageSearchTerms' in event.state.data ? event.state.data : null);
+                setCurrentCategory(event.state.category || '');
+            } else {
+                // Fallback if state is null (e.g., initial load or external navigation)
+                const path = window.location.pathname;
+                if (path.startsWith('/vendor/')) {
+                    const vendorId = path.split('/')[2];
+                    const fetchVendor = async () => {
+                        try {
+                            const vendorDocRef = doc(db, 'vendors', vendorId);
+                            const vendorDocSnap = await getDoc(vendorDocRef);
+                            if (vendorDocSnap.exists()) {
+                                const vendorData = { id: vendorDocSnap.id, ...vendorDocSnap.data() } as Vendor;
+                                setSelectedVendor(vendorData);
+                                setCurrentPage('vendor-profile');
+                            } else {
+                                setCurrentPage('home');
+                            }
+                        } catch (error) {
+                            console.error("Error fetching vendor from URL: ", error);
+                            setCurrentPage('home');
+                        }
+                    };
+                    fetchVendor();
+                } else if (path.startsWith('/inspiration/')) {
+                    // Similar logic for inspiration detail if needed
+                    setCurrentPage('inspiration'); // Fallback for now
+                } else if (path === '/admin') {
+                    setCurrentPage('admin');
+                } else if (path === '/vendor-dashboard') {
+                    setCurrentPage('vendorDashboard');
+                } else if (path === '/tools') {
+                    setCurrentPage('tools');
+                } else if (path === '/register-vendor') {
+                    setCurrentPage('registration');
+                } else if (path === '/register-client') {
+                    setCurrentPage('client-registration');
+                } else {
+                    setCurrentPage('home');
                 }
-            };
-            fetchVendor();
-        }
-    }, []);
+            }
+        };
 
-    const navigate = useCallback((page: Page, data?: Vendor | Inspiration, category?: string) => {
+        window.addEventListener('popstate', handlePopState);
+
+        // Initial load check
+        if (window.history.state) {
+            handlePopState({ state: window.history.state } as PopStateEvent);
+        } else {
+            handlePopState({ state: null } as PopStateEvent);
+        }
+
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, [navigate]);
+
+    const navigate = useCallback((page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => {
+        let path = '/';
         if (page === 'vendor-profile' && data && 'startingPrice' in data) {
             setSelectedVendor(data);
             setSelectedInpiration(null);
+            path = `/vendor/${data.id}`;
         } else if (page === 'inspiration-detail' && data && 'imageSearchTerms' in data) {
             setSelectedInpiration(data);
             setSelectedVendor(null);
+            path = `/inspiration/${data.id}`;
+        } else if (page === 'admin') {
+            path = '/admin';
+        } else if (page === 'vendorDashboard') {
+            path = '/vendor-dashboard';
+        } else if (page === 'tools') {
+            path = '/tools';
+        } else if (page === 'registration') {
+            path = '/register-vendor';
+        } else if (page === 'client-registration') {
+            path = '/register-client';
+        } else if (page === 'home') {
+            path = '/';
         } else {
-            setSelectedVendor(null);
-            setSelectedInpiration(null);
+            path = `/${page}`;
         }
+
+        window.history.pushState({ page, data, category }, '', path);
         setCurrentCategory(category || '');
         setCurrentPage(page);
         window.scrollTo(0, 0);

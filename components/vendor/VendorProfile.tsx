@@ -6,12 +6,9 @@ import type { AdminVendor } from '../../types';
 import Spinner from '../Spinner';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
 import { uploadImageToHosting } from '../../services/hostingUploadService';
-import { UploadCloudIcon } from '../icons/UploadCloudIcon';
-import { TrashIcon } from '../icons/TrashIcon';
 
 // Extend the form data type to include gallery
 interface VendorFormData extends Partial<AdminVendor> {
-    gallery?: string[];
 }
 
 const VendorProfile: React.FC = () => {
@@ -20,9 +17,7 @@ const VendorProfile: React.FC = () => {
     const [formData, setFormData] = useState<VendorFormData>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         const fetchVendorData = async () => {
@@ -52,7 +47,6 @@ const VendorProfile: React.FC = () => {
                         location: CHILE_REGIONS[0],
                         phone: '',
                         description: '',
-                        gallery: [],
                         // Add any other default fields required for a new vendor
                     });
                     console.log("No vendor profile found for this user. Initializing for creation.");
@@ -72,31 +66,6 @@ const VendorProfile: React.FC = () => {
             ...formData,
             [e.target.name]: e.target.value,
         });
-    };
-
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setIsUploading(true);
-        try {
-            const imageUrl = await uploadImageToHosting(file);
-            const currentGallery = formData.gallery || [];
-            setFormData(prev => ({ ...prev, gallery: [...currentGallery, imageUrl] }));
-        } catch (error) {
-            alert("Error al subir la imagen. Inténtalo de nuevo.");
-        } finally {
-            setIsUploading(false);
-        }
-    };
-    
-    const handleDeleteImage = (imgUrl: string) => {
-        if (window.confirm("¿Seguro que quieres eliminar esta imagen?")) {
-            setFormData(prev => ({
-                ...prev,
-                gallery: (prev.gallery || []).filter(url => url !== imgUrl)
-            }));
-        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -185,35 +154,7 @@ const VendorProfile: React.FC = () => {
                     </div>
                 </section>
                 
-                {/* Gallery Section */}
-                <section>
-                    <h4 className="text-lg font-semibold text-brand-dark border-b pb-2 mb-4">Galería de Imágenes</h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                        {(formData.gallery || []).map((url, index) => (
-                            <div key={index} className="relative group">
-                                <img src={url} alt={`Galería ${index + 1}`} className="w-full h-32 object-cover rounded-md" />
-                                <button
-                                    type="button"
-                                    onClick={() => handleDeleteImage(url)}
-                                    className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                    <TrashIcon className="w-4 h-4" />
-                                </button>
-                            </div>
-                        ))}
-                         <div className="w-full h-32">
-                            <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden"/>
-                            <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={isUploading}
-                                className="w-full h-full border-2 border-dashed border-gray-300 rounded-md flex flex-col items-center justify-center text-gray-500 hover:border-brand-primary hover:text-brand-primary transition-colors disabled:opacity-50"
-                            >
-                                {isUploading ? <Spinner /> : <><UploadCloudIcon className="w-8 h-8" /><span className="text-xs mt-1">Añadir Imagen</span></>}
-                            </button>
-                        </div>
-                    </div>
-                </section>
+
                 
                 <div className="flex justify-end items-center gap-4 pt-4 border-t">
                     {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
