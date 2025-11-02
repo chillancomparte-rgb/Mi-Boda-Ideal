@@ -9,7 +9,7 @@ import Step4Confirmation from '../components/registration/Step4Confirmation';
 import { auth, db } from '../services/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc, collection } from 'firebase/firestore';
-import { uploadImageToHosting } from '../../services/hostingUploadService';
+import { uploadImageToHosting } from '../../services/hostingUploadService.ts';
 
 interface RegistrationFormData {
     contactPersonName: string;

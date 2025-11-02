@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Page } from '../types';
+import type { Page, Vendor, Inspiration, AdminVendor } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import { WeddingRingIcon } from './icons/WeddingRingIcon';
 import { ChevronDownIcon } from './icons/ChevronDownIcon';

@@ -158,7 +158,7 @@ const VendorProfile: React.FC = () => {
                 
                 <div className="flex justify-end items-center gap-4 pt-4 border-t">
                     {successMessage && <p className="text-sm text-green-600">{successMessage}</p>}
-                    <button type="submit" disabled={isSaving || isUploading} className="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-brand-accent disabled:bg-gray-400">
+                    <button type="submit" disabled={isSaving || isLoading} className="bg-brand-primary text-white font-bold py-2 px-6 rounded-md hover:bg-brand-accent disabled:bg-gray-400">
                         {isSaving ? 'Guardando...' : 'Guardar Cambios'}
                     </button>
                 </div>

@@ -31,6 +31,7 @@ const AdminUsers: React.FC = () => {
     const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [currentUserType, setCurrentUserType] = useState<UserRoleFilter>('all');
+    const [activeAccordionTab, setActiveAccordionTab] = useState<'account' | 'profile'>('account');
 
     const fetchUsers = async () => {
         setIsLoading(true);

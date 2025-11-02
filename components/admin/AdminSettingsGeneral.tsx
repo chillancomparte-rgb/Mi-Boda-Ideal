@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getGeneralSettings, updateGeneralSettings, initializeDefaultSettings } from '../../services/configService';
-import { GeneralSettings } from '../../../types/config';
+import { GeneralSettings } from '../../../types/config.ts';
 import Spinner from '../Spinner';
 
 const AdminSettingsGeneral: React.FC = () => {

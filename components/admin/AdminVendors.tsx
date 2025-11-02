@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../../services/firebase';
-import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc } from 'firebase/firestore';
 import type { AdminVendor, Page, Vendor, Inspiration } from '../../types';
 import Spinner from '../Spinner';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
@@ -119,7 +119,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
             if (editingVendor) {
                 // Update
                 const vendorDoc = doc(db, 'vendors', editingVendor.id);
-                await updateDoc(vendorDoc, formData);
+                await updateDoc(vendorDoc, formData as Partial<AdminVendor>);
             } else {
                 // Create
                 await addDoc(collection(db, 'vendors'), { ...formData });

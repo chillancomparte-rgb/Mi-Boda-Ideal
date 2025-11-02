@@ -18,7 +18,7 @@ import AuthModal from './components/modals/AuthModal';
 import RoleSelectionModal from './components/modals/RoleSelectionModal'; // Importar el nuevo modal
 import { db } from './services/firebase';
 import { collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
-import type { Page, Vendor, Inspiration } from './types';
+import type { Page, Vendor, Inspiration, AdminVendor } from './types';
 import { VENDOR_CATEGORIES } from './constants';
 import { useAuth } from './hooks/useAuth';
 import Spinner from './components/Spinner';
@@ -47,6 +47,38 @@ const App: React.FC = () => {
     const isAdmin = user?.role === 'admin';
     const isVendor = user?.role === 'vendor';
     const isCouple = user?.role === 'user';
+
+    const navigate = useCallback((page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => {
+        let path = '/';
+        if (page === 'vendor-profile' && data && 'startingPrice' in data) {
+            setSelectedVendor(data);
+            setSelectedInpiration(null);
+            path = `/vendor/${data.id}`;
+        } else if (page === 'inspiration-detail' && data && 'imageSearchTerms' in data) {
+            setSelectedInpiration(data);
+            setSelectedVendor(null);
+            path = `/inspiration/${data.id}`;
+        } else if (page === 'admin') {
+            path = '/admin';
+        } else if (page === 'vendorDashboard') {
+            path = '/vendor-dashboard';
+        } else if (page === 'tools') {
+            path = '/tools';
+        } else if (page === 'registration') {
+            path = '/register-vendor';
+        } else if (page === 'client-registration') {
+            path = '/register-client';
+        } else if (page === 'home') {
+            path = '/';
+        } else {
+            path = `/${page}`;
+        }
+
+        window.history.pushState({ page, data, category }, '', path);
+        setCurrentCategory(category || '');
+        setCurrentPage(page);
+        window.scrollTo(0, 0);
+    }, []);
 
     useEffect(() => {
         const fetchSettingsAndInitialize = async () => {
@@ -117,38 +149,6 @@ const App: React.FC = () => {
             window.removeEventListener('popstate', handlePopState);
         };
     }, [navigate]);
-
-    const navigate = useCallback((page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => {
-        let path = '/';
-        if (page === 'vendor-profile' && data && 'startingPrice' in data) {
-            setSelectedVendor(data);
-            setSelectedInpiration(null);
-            path = `/vendor/${data.id}`;
-        } else if (page === 'inspiration-detail' && data && 'imageSearchTerms' in data) {
-            setSelectedInpiration(data);
-            setSelectedVendor(null);
-            path = `/inspiration/${data.id}`;
-        } else if (page === 'admin') {
-            path = '/admin';
-        } else if (page === 'vendorDashboard') {
-            path = '/vendor-dashboard';
-        } else if (page === 'tools') {
-            path = '/tools';
-        } else if (page === 'registration') {
-            path = '/register-vendor';
-        } else if (page === 'client-registration') {
-            path = '/register-client';
-        } else if (page === 'home') {
-            path = '/';
-        } else {
-            path = `/${page}`;
-        }
-
-        window.history.pushState({ page, data, category }, '', path);
-        setCurrentCategory(category || '');
-        setCurrentPage(page);
-        window.scrollTo(0, 0);
-    }, []);
 
     const openAuthModal = (view: 'login' | 'signup') => {
         setAuthModalState({ isOpen: true, view });
