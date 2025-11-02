@@ -23,7 +23,15 @@ const AdminSettingsGeneral: React.FC = () => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type, checked } = e.target as HTMLInputElement;
         setSettings((prev: GeneralSettings | null) => ({
-            ...(prev || {}),
+            ...(prev || {
+                siteName: '',
+                siteDescription: '',
+                metaImageUrl: '',
+                maintenanceMode: false,
+                generalAnnouncement: '',
+                vendorAnnouncement: '',
+                clientAnnouncement: '',
+            }),
             [name]: type === 'checkbox' ? checked : value,
         }));
     };
