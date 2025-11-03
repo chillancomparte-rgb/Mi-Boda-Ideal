@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { db } from '../../services/firebase';
-import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc } from 'firebase/firestore';
-import type { AdminVendor, Page, Vendor, Inspiration, Service } from '../../types';
+import { getVendors, addVendor, updateVendor, deleteVendor } from '../../services/firebase'; // Importar las nuevas funciones
+import type { Page, Vendor, Inspiration, Service } from '../../types'; // Usar la interfaz Vendor actualizada
 import Spinner from '../Spinner';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
 import { EditIcon } from '../icons/EditIcon';
@@ -11,40 +10,36 @@ import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
 import { uploadImageToHosting } from '../../services/hostingUploadService';
 import { CrownIcon } from '../icons/CrownIcon'; // Importar CrownIcon
 
-// FIX: La interface se movió aquí para estar junto al componente
-interface VendorFormData extends Partial<AdminVendor> {
+interface VendorFormData extends Partial<Vendor> { // Usar Partial<Vendor>
     description?: string;
 }
 
-const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiration | AdminVendor | Service, category?: string) => void }> = ({ navigate }) => {
-    
-    // --- ESTADO Y FUNCIONES ---
-    const [vendors, setVendors] = useState<AdminVendor[]>([]);
+const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiration | Service, category?: string) => void }> = ({ navigate }) => {
+
+    const [vendors, setVendors] = useState<Vendor[]>([]); // Usar Vendor[]
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
     const [categoryFilter, setCategoryFilter] = useState<string>('Todas');
     const [regionFilter, setRegionFilter] = useState<string>('Todas');
     const [isModalOpen, setIsModalOpen] = useState(false);
-    const [editingVendor, setEditingVendor] = useState<AdminVendor | null>(null);
+    const [editingVendor, setEditingVendor] = useState<Vendor | null>(null); // Usar Vendor | null
     const [formData, setFormData] = useState<VendorFormData>({});
 
     const [isSaving, setIsSaving] = useState(false);
-    const [isUploading, setIsUploading] = useState(false); // <--- ESTE ES EL 'isUploading' QUE DA ERROR
+    const [isUploading, setIsUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-    const [selectedVendorContact, setSelectedVendorContact] = useState<AdminVendor | null>(null);
-    const [activeTab, setActiveTab] = useState('company'); 
+    const [selectedVendorContact, setSelectedVendorContact] = useState<Vendor | null>(null); // Usar Vendor | null
+    const [activeTab, setActiveTab] = useState('company');
     const [showServicesModal, setShowServicesModal] = useState(false);
-    const [selectedVendorForServices, setSelectedVendorForServices] = useState<AdminVendor | null>(null);
+    const [selectedVendorForServices, setSelectedVendorForServices] = useState<Vendor | null>(null); // Usar Vendor | null
 
 
     const fetchVendors = async () => {
         setIsLoading(true);
         try {
-            const vendorsCollectionRef = collection(db, 'vendors');
-            const vendorsSnapshot = await getDocs(vendorsCollectionRef);
-            const vendorsList = vendorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AdminVendor[];
+            const vendorsList = await getVendors(); // Usar la nueva función getVendors
             setVendors(vendorsList);
         } catch (error) {
             console.error("Error fetching vendors: ", error);
@@ -64,23 +59,21 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         fetchVendors();
     };
 
-    const handleOpenContactModal = (vendor: AdminVendor) => {
+    const handleOpenContactModal = (vendor: Vendor) => { // Usar Vendor
         setSelectedVendorContact(vendor);
         setIsContactModalOpen(true);
     };
 
-    // FIX: Faltaba esta función
     const handleCloseContactModal = () => {
         setIsContactModalOpen(false);
         setSelectedVendorContact(null);
     };
 
-    const handleOpenModal = (vendor: AdminVendor | null = null) => {
+    const handleOpenModal = (vendor: Vendor | null = null) => { // Usar Vendor | null
         setEditingVendor(vendor);
         setFormData(vendor ? { ...vendor } : {
             name: '',
             email: '',
-            companyEmail: '',
             category: VENDOR_CATEGORIES[0],
             location: CHILE_REGIONS[0],
             phone: '',
@@ -117,12 +110,12 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
 
         setIsSaving(true);
         try {
-            if (editingVendor) {
-                const vendorDoc = doc(db, 'vendors', editingVendor.id);
-                // FIX: Usamos {...formData} para evitar el error de tipo de Firebase
-                await updateDoc(vendorDoc, { ...formData } as Partial<AdminVendor>);
+            if (editingVendor && editingVendor.id) {
+                await updateVendor(editingVendor.id, { ...formData } as Partial<Vendor>); // Usar updateVendor
             } else {
-                await addDoc(collection(db, 'vendors'), { ...formData, registeredDate: new Date().toISOString() });
+                // FIX: Aquí se necesita el UID real del usuario que se registra como proveedor.
+                // Por ahora, se usa un 'temp_uid'. Esto debe ser manejado en el flujo de registro.
+                await addVendor({ ...formData, registeredDate: new Date().toISOString(), status: 'Pendiente', isPremium: false } as Omit<Vendor, 'id' | 'averageRating' | 'reviewCount'>);
             }
             fetchVendors();
             handleCloseModal();
@@ -146,9 +139,8 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
 
     const handleDelete = async (id: string) => {
         if (window.confirm('¿Estás seguro de que quieres eliminar este proveedor?')) {
-            const vendorDoc = doc(db, 'vendors', id);
             try {
-                await deleteDoc(vendorDoc);
+                await deleteVendor(id); // Usar deleteVendor
                 setVendors(vendors.filter(v => v.id !== id));
             } catch (error) {
                 console.error("Error deleting vendor: ", error);
@@ -156,11 +148,9 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         }
     };
 
-    // FIX: Las constantes de estilos se mueven aquí, antes del 'return'
     const searchInputStyle = "w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:ring-brand-primary focus:border-brand-primary";
     const modalInputStyle = "mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:ring-brand-primary focus:border-brand-primary";
 
-    // --- INICIO DEL JSX (RETURN) ---
     return (
         <div className="bg-white p-6 rounded-lg shadow animate-fade-in">
             <div className="flex justify-between items-center mb-6">
@@ -248,7 +238,6 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                                             {vendor.status || 'Pendiente'}
                                         </span>
                                     </td>
-                                    {/* FIX: Faltaba esta celda de "Acciones" */}
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                         <button onClick={() => handleOpenModal(vendor)} className="text-brand-primary hover:text-brand-accent mr-3" title="Editar">
                                             <EditIcon className="h-5 w-5"/>
@@ -420,7 +409,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                 </div>
             )}
 
-        </div> // <-- FIX: Este es el </div> de cierre principal que faltaba
+        </div>
     );
 };
 

@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from './components/Header';
 import Footer from './components/Footer';
@@ -15,10 +13,9 @@ import RegistrationPage from './pages/RegistrationPage';
 import ClientRegistrationPage from './pages/ClientRegistrationPage';
 import AdminPage from './pages/AdminPage';
 import AuthModal from './components/modals/AuthModal';
-import RoleSelectionModal from './components/modals/RoleSelectionModal'; // Importar el nuevo modal
-import { db } from './services/firebase';
-import { collection, getDocs, doc, getDoc, addDoc, updateDoc } from 'firebase/firestore';
-import type { Page, Vendor, Inspiration, AdminVendor } from './types';
+import RoleSelectionModal from './components/modals/RoleSelectionModal';
+import { getVendor } from './services/firebase'; // Importar getVendor de nuestro servicio
+import type { Page, Vendor, Inspiration } from './types'; // Eliminar AdminVendor
 import { VENDOR_CATEGORIES } from './constants';
 import { useAuth } from './hooks/useAuth';
 import Spinner from './components/Spinner';
@@ -39,8 +36,8 @@ const App: React.FC = () => {
     const [settingsLoading, setSettingsLoading] = useState(true);
     const [showGeneralAnnouncement, setShowGeneralAnnouncement] = useState(true);
     const [showUserAnnouncement, setShowUserAnnouncement] = useState(true);
-    const [showRoleSelectionModal, setShowRoleSelectionModal] = useState(false); // Nuevo estado
-    
+    const [showRoleSelectionModal, setShowRoleSelectionModal] = useState(false);
+
     const [authModalState, setAuthModalState] = useState({ isOpen: false, view: 'login' as 'login' | 'signup' });
 
     const { user, loading: authLoading } = useAuth();
@@ -48,14 +45,14 @@ const App: React.FC = () => {
     const isVendor = user?.role === 'vendor';
     const isCouple = user?.role === 'user';
 
-    const navigate = useCallback((page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => {
+    const navigate = useCallback((page: Page, data?: Vendor | Inspiration, category?: string) => { // Eliminar AdminVendor del tipo de data
         let path = '/';
-        if (page === 'vendor-profile' && data && 'startingPrice' in data) {
-            setSelectedVendor(data);
+        if (page === 'vendor-profile' && data && 'name' in data) { // 'name' es una propiedad común de Vendor
+            setSelectedVendor(data as Vendor); // Asegurarse de que sea tipo Vendor
             setSelectedInpiration(null);
             path = `/vendor/${data.id}`;
         } else if (page === 'inspiration-detail' && data && 'imageSearchTerms' in data) {
-            setSelectedInpiration(data);
+            setSelectedInpiration(data as Inspiration);
             setSelectedVendor(null);
             path = `/inspiration/${data.id}`;
         } else if (page === 'admin') {
@@ -92,7 +89,7 @@ const App: React.FC = () => {
         const handlePopState = (event: PopStateEvent) => {
             if (event.state) {
                 setCurrentPage(event.state.page);
-                setSelectedVendor(event.state.data && 'startingPrice' in event.state.data ? event.state.data : null);
+                setSelectedVendor(event.state.data && 'name' in event.state.data ? event.state.data : null); // Usar 'name' para verificar Vendor
                 setSelectedInpiration(event.state.data && 'imageSearchTerms' in event.state.data ? event.state.data : null);
                 setCurrentCategory(event.state.category || '');
             } else {
@@ -102,10 +99,8 @@ const App: React.FC = () => {
                     const vendorId = path.split('/')[2];
                     const fetchVendor = async () => {
                         try {
-                            const vendorDocRef = doc(db, 'vendors', vendorId);
-                            const vendorDocSnap = await getDoc(vendorDocRef);
-                            if (vendorDocSnap.exists()) {
-                                const vendorData = { id: vendorDocSnap.id, ...vendorDocSnap.data() } as Vendor;
+                            const vendorData = await getVendor(vendorId); // Usar la función getVendor
+                            if (vendorData) {
                                 setSelectedVendor(vendorData);
                                 setCurrentPage('vendor-profile');
                             } else {
@@ -172,7 +167,7 @@ const App: React.FC = () => {
             return [];
         }
     });
-    
+
     const [visitedVendors, setVisitedVendors] = useState<Vendor[]>(() => {
         try {
             const savedVisited = localStorage.getItem('miBodaIdealVisited');
@@ -204,9 +199,9 @@ const App: React.FC = () => {
 
     const toggleFavorite = (vendor: Vendor) => {
         setFavorites(prev => {
-            const isFavorited = prev.some(v => v.name === vendor.name);
+            const isFavorited = prev.some(v => v.id === vendor.id); // Usar vendor.id para comparar
             if (isFavorited) {
-                return prev.filter(v => v.name !== vendor.name);
+                return prev.filter(v => v.id !== vendor.id);
             } else {
                 return [...prev, vendor];
             }
@@ -215,7 +210,7 @@ const App: React.FC = () => {
 
     const handleVendorSelect = (vendor: Vendor) => {
         setVisitedVendors(prev => {
-            const newHistory = [vendor, ...prev.filter(v => v.name !== vendor.name)];
+            const newHistory = [vendor, ...prev.filter(v => v.id !== vendor.id)]; // Usar vendor.id para comparar
             return newHistory.slice(0, 10);
         });
         navigate('vendor-profile', vendor);
@@ -224,7 +219,7 @@ const App: React.FC = () => {
     const handleInspirationSelect = (item: Inspiration) => {
         navigate('inspiration-detail', item);
     };
-    
+
     // --- RENDER LOGIC ---
 
     // 1. Master Loading State: Wait for authentication and settings to resolve.
@@ -257,7 +252,7 @@ const App: React.FC = () => {
         favorites: favorites,
         onToggleFavorite: toggleFavorite,
     };
-    
+
     if (isVendorSubPage) {
         pageComponent = <VendorsPage key={currentPage} {...vendorPageProps} />;
     } else {
@@ -287,7 +282,8 @@ const App: React.FC = () => {
                 pageComponent = <CommunityPage />;
                 break;
             case 'vendor-profile':
-                pageComponent = selectedVendor ? <VendorProfilePage vendor={selectedVendor} onBack={() => navigate('vendors', undefined, currentCategory)} favorites={favorites} onToggleFavorite={toggleFavorite} onVendorSelect={handleVendorSelect} /> : <Redirecting />;
+                // Pasar vendorId en lugar del objeto vendor completo
+                pageComponent = selectedVendor ? <VendorProfilePage vendorId={selectedVendor.id} onBack={() => navigate('vendors', undefined, currentCategory)} /> : <Redirecting />;
                 break;
             case 'registration':
                 pageComponent = <RegistrationPage navigate={navigate} />;
@@ -307,7 +303,7 @@ const App: React.FC = () => {
         // Admin page has its own full-screen layout
         return pageComponent;
     }
-    
+
     // Standard layout for all other pages
     return (
         <div className="flex flex-col min-h-screen bg-brand-light font-sans">
@@ -315,7 +311,7 @@ const App: React.FC = () => {
                 <GeneralAnnouncement message={generalSettings.generalAnnouncement} onClose={() => setShowGeneralAnnouncement(false)} />
             )}
             {generalSettings && (generalSettings.vendorAnnouncement || generalSettings.clientAnnouncement) && showUserAnnouncement && (
-                <UserAnnouncement 
+                <UserAnnouncement
                     vendorMessage={generalSettings.vendorAnnouncement}
                     clientMessage={generalSettings.clientAnnouncement}
                     onClose={() => setShowUserAnnouncement(false)}

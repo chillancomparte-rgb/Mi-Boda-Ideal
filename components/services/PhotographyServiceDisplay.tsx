@@ -1,12 +1,12 @@
 import React from 'react';
-import { Service, AdminVendor, User } from '../../types';
+import { Service, Vendor, User } from '../../types';
 import { MapPinIcon } from '../icons/MapPinIcon';
 import { CameraIcon } from '../icons/CameraIcon';
 import ServiceGalleryDisplay from './ServiceGalleryDisplay';
 
 interface PhotographyServiceDisplayProps {
     service: Service;
-    vendor: AdminVendor;
+    vendor: Vendor;
     currentUser: User | null;
 }
 

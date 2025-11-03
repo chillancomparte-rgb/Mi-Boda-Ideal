@@ -12,6 +12,7 @@ import { InvoiceIcon } from '../components/icons/InvoiceIcon';
 import { GraduationCapIcon } from '../components/icons/GraduationCapIcon';
 import { ArrowLeftIcon } from '../components/icons/ArrowLeftIcon';
 import { CameraIcon } from '../components/icons/CameraIcon';
+import { ListIcon } from '../components/icons/ListIcon';
 import DashboardHome from '../components/vendor/DashboardHome';
 import VendorProfile from '../components/vendor/VendorProfile';
 import VendorMessages from '../components/vendor/VendorMessages';
@@ -19,29 +20,21 @@ import VendorServices from '../components/vendor/VendorServices';
 import VendorBilling from '../components/vendor/VendorBilling';
 import VendorCampus from '../components/vendor/VendorCampus';
 import VendorSettings from '../components/vendor/VendorSettings';
+import VendorGallery from '../components/vendor/VendorGallery';
+import VendorQuoteRequests from '../components/vendor/VendorQuoteRequests';
 import ServiceModal from '../components/vendor/ServiceModal';
 import SeoMeta from '../components/SeoMeta';
-import type { Page } from '../types';
+import { addService, updateService } from '../services/firebase';
+import { uploadImageToHosting } from '../services/hostingUploadService';
 import PremiumFeatureLock from '../components/PremiumFeatureLock';
-
-import VendorGallery from '../components/vendor/VendorGallery';
-
 import ServicePublicationPage from './ServicePublicationPage';
-
-interface Service {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    category: string[];
-    locations: string[];
-}
-
-type VendorPage = 'dashboard' | 'profile' | 'messages' | 'services' | 'billing' | 'campus' | 'settings' | 'gallery' | 'service-publication';
+import type { Page, Service, VendorPage } from '../types';
 
 interface VendorDashboardPageProps {
     navigate: (page: Page) => void;
 }
+
+
 
 const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) => {
     const { user } = useAuth();
@@ -86,23 +79,43 @@ const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) =
         setCurrentService(null);
     };
 
-    const handleSave = async (serviceData: Omit<Service, 'id'>) => {
+    const handleSave = async (serviceData: Omit<Service, 'id'>, newImages: File[]) => {
         if (!vendorId) return;
         setIsSaving(true);
-        const servicesCollectionRef = collection(db, 'vendors', vendorId, 'services');
 
         try {
+            let uploadedImageUrls: string[] = [];
+            // Subir nuevas imágenes
+            for (const imageFile of newImages) {
+                const imageUrl = await uploadImageToHosting(imageFile);
+                uploadedImageUrls.push(imageUrl);
+            }
+
+            // Combinar imágenes existentes con las nuevas
+            const finalImages = [...(serviceData.images || []), ...uploadedImageUrls];
+
+            const serviceToSave: Partial<Service> = {
+                ...serviceData,
+                vendorId: vendorId, // Asegurarse de que el vendorId esté presente
+                images: finalImages,
+                status: 'active' as const,
+                averageRating: currentService?.averageRating || 0,
+                reviewCount: currentService?.reviewCount || 0,
+            };
+
             if (currentService) {
-                const serviceDocRef = doc(servicesCollectionRef, currentService.id);
-                await updateDoc(serviceDocRef, serviceData);
-                setServices(services.map(s => s.id === currentService.id ? { id: s.id, ...serviceData } : s));
+                // Actualizar servicio existente
+                await updateService(vendorId, currentService.id, serviceToSave);
+                setServices(services.map(s => s.id === currentService.id ? { ...s, ...serviceToSave } as Service : s));
             } else {
-                const newDocRef = await addDoc(servicesCollectionRef, serviceData);
-                setServices([...services, { id: newDocRef.id, ...serviceData }]);
+                // Añadir nuevo servicio
+                const newServiceId = await addService(vendorId, serviceToSave as Omit<Service, 'id'>);
+                setServices([...services, { id: newServiceId, ...serviceToSave } as Service]);
             }
             closeModal();
         } catch (error) {
             console.error("Error saving service:", error);
+            alert("Hubo un error al guardar el servicio. Por favor, inténtalo de nuevo.");
         } finally {
             setIsSaving(false);
         }
@@ -118,6 +131,7 @@ const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) =
         { id: 'profile', label: 'Mi Perfil', icon: <StoreIcon className="h-5 w-5" /> },
         { id: 'gallery', label: 'Galería', icon: <CameraIcon className="h-5 w-5" /> },
         { id: 'messages', label: 'Mensajes', icon: <InboxIcon className="h-5 w-5" /> },
+        { id: 'quote-requests', label: 'Solicitudes', icon: <ListIcon className="h-5 w-5" /> }, // Nueva opción de menú
         { id: 'services', label: 'Servicios', icon: <BriefcaseIcon className="h-5 w-5" /> },
         { id: 'billing', label: 'Facturación', icon: <InvoiceIcon className="h-5 w-5" /> },
         { id: 'campus', label: 'Campus', icon: <GraduationCapIcon className="h-5 w-5" /> },
@@ -134,6 +148,8 @@ const VendorDashboardPage: React.FC<VendorDashboardPageProps> = ({ navigate }) =
                 return <VendorGallery />;
             case 'messages':
                 return <VendorMessages />;
+            case 'quote-requests': // Renderizar el nuevo componente
+                return <VendorQuoteRequests />;
             case 'services':
                 return <VendorServices openModal={openModal} services={services} setServices={setServices} vendorId={vendorId} onViewPublication={handleViewPublication} />;
             case 'billing':

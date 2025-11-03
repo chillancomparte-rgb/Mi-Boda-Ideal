@@ -47,27 +47,56 @@ export type Page =
     | (string & {});
 
 
+export type VendorPage = 'dashboard' | 'profile' | 'gallery' | 'messages' | 'quote-requests' | 'services' | 'billing' | 'campus' | 'settings' | 'service-publication';
+
 export interface Service {
     id: string;
+    vendorId: string; // Enlace al proveedor
     name: string;
     description: string;
-    price: number;
-    category: string[];
-    locations: string[];
-    gallery?: string[];
+    price: number; // Podría ser más flexible en el futuro (rango, por paquete)
+    category: string[]; // Cambiado de string a string[]
+    features?: string[]; // Características o lo que incluye el servicio
+    images?: string[]; // URLs de las imágenes del servicio
+    locations?: string[]; // Ubicaciones donde se ofrece el servicio
+    status: 'active' | 'inactive' | 'pending_review'; // Estado del servicio
+    createdAt: string;
+    updatedAt: string;
+    averageRating?: number; // Calificación promedio del servicio
+    reviewCount?: number; // Número de reseñas del servicio
 }
 
-export interface Vendor {
+// La interfaz Vendor se fusiona con AdminVendor para tener una definición completa
+export type VendorStatus = 'Aprobado' | 'Pendiente' | 'Rechazado';
+
+export interface Vendor { // Renombrado de AdminVendor a Vendor
     id?: string;
-    name: string;
-    category: string;
-    location: string;
-    city: string;
-    rating: number;
-    description: string;
-    imageUrl: string;
-    startingPrice: number;
+    name: string; // Nombre de la empresa/proveedor
+    category: string; // Categoría principal del proveedor
+    location: string; // Región principal del proveedor
+    city?: string; // Añadir la propiedad city
+    email?: string; // Email de la empresa
+    phone?: string;
+    registeredDate?: string;
+    status?: VendorStatus;
     isPremium?: boolean;
+    logoUrl?: string;
+    description?: string;
+    imageUrl?: string; // Añadido para consistencia
+    startingPrice?: number; // Añadido para consistencia
+    rating?: number; // Añadido para consistencia
+    // Datos públicos de la empresa (redes sociales)
+    facebookUrl?: string;
+    instagramUrl?: string;
+    websiteUrl?: string;
+    // Datos de contacto personal (solo para administración o uso interno del proveedor)
+    contactPersonName?: string;
+    contactPersonLastName?: string;
+    contactPersonRut?: string;
+    contactPersonPhone?: string;
+    contactPersonEmail?: string;
+    averageRating?: number; // Calificación promedio del proveedor
+    reviewCount?: number; // Número de reseñas del proveedor
 }
 
 export interface Inspiration {
@@ -142,49 +171,30 @@ export interface FAQItem {
     answer: string;
 }
 
-// Tipos para el Panel de Administrador
-export type VendorStatus = 'Aprobado' | 'Pendiente' | 'Rechazado';
+// Nueva interfaz para solicitudes de cotización
+export type QuoteRequestStatus = 'pending' | 'responded' | 'accepted' | 'rejected';
 
-export interface AdminUser {
+export interface QuoteRequest {
     id: string;
-    name: string;
-    email: string;
-    registeredDate: string; // Consider using Firestore Timestamp in real app
-    weddingDate?: string;
-    location: string;
-    phone?: string;
-    avatarUrl?: string;
-    registrationType?: 'email' | 'google';
-    role?: 'admin' | 'user' | 'vendor';
+    clientId: string;
+    vendorId: string;
+    serviceId: string; // El servicio específico por el que se pide cotización
+    message: string;
+    eventDate?: string; // Fecha del evento, si aplica
+    status: QuoteRequestStatus;
+    createdAt: string;
+    updatedAt: string;
 }
 
-export interface AdminVendor {
+// Nueva interfaz para reseñas
+export interface Review {
     id: string;
-    name: string;
-    companyName?: string;
-    category: string;
-    location: string;
-    locations?: string[];
-    email: string; // Este será el email de la empresa
-    companyEmail?: string; // Nuevo campo para el email de la empresa
-    phone?: string;
-    registeredDate: string; // Consider using Firestore Timestamp in real app
-    status: VendorStatus;
-    isPremium?: boolean;
-    logoUrl?: string;
-    gallery?: string[];
-    registrationType?: 'email' | 'google';
-    // Datos públicos de la empresa (redes sociales)
-    facebookUrl?: string;
-    instagramUrl?: string;
-    websiteUrl?: string;
-    // Datos personales del contacto (solo para admin)
-    contactPersonName?: string;
-    contactPersonLastName?: string;
-    contactPersonRut?: string;
-    contactPersonPhone?: string;
-    contactPersonEmail?: string; // Nuevo campo para el email del contacto personal
-    description?: string;
+    clientId: string;
+    vendorId: string;
+    serviceId?: string; // Opcional, si la reseña es para un servicio específico
+    rating: number; // 1-5 estrellas
+    comment: string;
+    createdAt: string;
 }
 
 export interface HeroSlide {

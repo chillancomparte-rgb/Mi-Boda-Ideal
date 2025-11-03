@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { db } from '../../services/firebase';
-import { collection, getDocs, deleteDoc, doc, query, where, limit } from 'firebase/firestore';
+import { getServices, deleteService } from '../../services/firebase'; // Importar getServices y deleteService de firebase.ts
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
 import { EyeIcon } from '../icons/EyeIcon';
 import { TrashIcon } from '../icons/TrashIcon';
@@ -10,7 +9,7 @@ import { MapPinIcon } from '../icons/MapPinIcon';
 import { Service } from '../../types';
 
 interface VendorServicesProps {
-    openModal: (service?: Service) => void;
+    openModal: (service?: Service | null) => void;
     services: Service[];
     setServices: React.Dispatch<React.SetStateAction<Service[]>>;
     vendorId: string | null;
@@ -28,10 +27,9 @@ const VendorServices: React.FC<VendorServicesProps> = ({ openModal, services, se
             }
             setIsLoading(true);
             try {
-                const servicesCollectionRef = collection(db, 'vendors', vendorId, 'services');
-                const servicesSnapshot = await getDocs(servicesCollectionRef);
-                const servicesList = servicesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Service));
-                setServices(servicesList);
+                // Usar la función getServices de firebase.ts
+                const fetchedServices = await getServices(vendorId);
+                setServices(fetchedServices);
             } catch (error) {
                 console.error("Error fetching services:", error);
             } finally {
@@ -44,9 +42,9 @@ const VendorServices: React.FC<VendorServicesProps> = ({ openModal, services, se
 
     const handleDelete = async (id: string) => {
         if (!vendorId) return;
-        const serviceDocRef = doc(db, 'vendors', vendorId, 'services', id);
         try {
-            await deleteDoc(serviceDocRef);
+            // Usar la función deleteService de firebase.ts
+            await deleteService(vendorId, id);
             setServices(services.filter(s => s.id !== id));
         } catch (error) {
             console.error("Error deleting service:", error);
@@ -61,6 +59,13 @@ const VendorServices: React.FC<VendorServicesProps> = ({ openModal, services, se
         <div className="bg-white p-8 rounded-lg shadow-sm">
             <div className="flex justify-between items-center mb-6">
                 <h3 className="text-2xl font-serif font-bold text-brand-dark">Mis Servicios</h3>
+                <button
+                    onClick={() => openModal()}
+                    className="bg-brand-primary text-white font-bold py-2 px-4 rounded-full hover:bg-brand-accent transition-colors flex items-center"
+                >
+                    <PlusCircleIcon className="h-5 w-5 mr-2" />
+                    Añadir Servicio
+                </button>
             </div>
 
             {services.length === 0 && !isLoading ? (
@@ -95,7 +100,7 @@ const VendorServices: React.FC<VendorServicesProps> = ({ openModal, services, se
                                     <MapPinIcon className="h-4 w-4 mr-1" />
                                     {service.locations && service.locations.length > 0 ? service.locations.join(', ') : 'Sin especificar'}
                                 </div>
-                                <p className="text-brand-primary font-semibold text-lg">${service.price.toLocaleString('es-CL')}</p>
+                                <p className="text-brand-primary font-semibold text-lg">Desde ${service.price.toLocaleString('es-CL')}</p>
                             </div>
                         </div>
                     ))}

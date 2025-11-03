@@ -60,12 +60,15 @@ const VendorsPage: React.FC<VendorsPageProps> = ({ onVendorSelect, initialCatego
                         name: data.name || 'Sin Nombre',
                         category: data.category || 'Sin Categoría',
                         location: data.location || 'Sin Ubicación',
-                        city: data.location || 'Sin Ciudad', // Usamos location como fallback
-                        rating: data.rating || 4.5, // Default rating
-                        description: data.description || 'Descripción no disponible.', // Default description
-                        imageUrl: data.imageUrl || `https://source.unsplash.com/featured/400x300/?${encodeURIComponent(data.category || 'wedding')}`, // Default image
-                        startingPrice: data.startingPrice || 100000, // Default price
+                        city: data.city || data.location || 'Sin Ciudad',
+                        rating: data.rating || 4.5,
+                        description: data.description || 'Descripción no disponible.',
+                        imageUrl: data.imageUrl || `https://source.unsplash.com/featured/400x300/?${encodeURIComponent(data.category || 'wedding')}`,
+                        startingPrice: data.startingPrice || 100000,
                         isPremium: data.isPremium || false,
+                        email: data.email || '', // Añadido para que coincida con el tipo
+                        registeredDate: data.registeredDate || '', // Añadido para que coincida con el tipo
+                        status: data.status || 'Pendiente', // Añadido para que coincida con el tipo
                     } as Vendor;
                 });
                 setAllVendors(vendorsList);

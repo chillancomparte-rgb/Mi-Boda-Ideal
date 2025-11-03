@@ -6,7 +6,7 @@ import { DollarIcon } from '../icons/DollarIcon';
 import { CheckCircleIcon } from '../icons/CheckCircleIcon';
 import { db } from '../../services/firebase';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import type { AdminUser, AdminVendor } from '../../types';
+import type { User, Vendor } from '../../types';
 import Spinner from '../Spinner';
 
 const AdminDashboard: React.FC = () => {
@@ -15,7 +15,7 @@ const AdminDashboard: React.FC = () => {
         vendors: 0,
         pendingVendors: 0,
     });
-    const [recentActivity, setRecentActivity] = useState<(AdminUser | AdminVendor)[]>([]);
+    const [recentActivity, setRecentActivity] = useState<(User | Vendor)[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
@@ -29,7 +29,7 @@ const AdminDashboard: React.FC = () => {
                 const usersSnapshot = await getDocs(usersCollection);
                 const vendorsSnapshot = await getDocs(vendorsCollection);
 
-                const allVendors = vendorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as AdminVendor[];
+                const allVendors = vendorsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Vendor[];
                 const pendingCount = allVendors.filter(v => v.status === 'Pendiente').length;
 
                 setStats({

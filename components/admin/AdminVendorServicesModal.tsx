@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { db } from '../../services/firebase';
 import { collection, getDocs, doc, deleteDoc } from 'firebase/firestore';
-import { AdminVendor, Service } from '../../types';
+import { Vendor, Service } from '../../types';
 import Spinner from '../Spinner';
 import { XIcon } from '../icons/XIcon';
 import { EditIcon } from '../icons/EditIcon';
@@ -11,7 +11,7 @@ import { PlusCircleIcon } from '../icons/PlusCircleIcon'; // Importar PlusCircle
 import AdminServiceModal from './AdminServiceModal'; // Importar el nuevo modal
 
 interface AdminVendorServicesModalProps {
-    vendor: AdminVendor;
+    vendor: Vendor;
     onClose: () => void;
     onViewService: (serviceId: string) => void; // To view the service publication
     // onEditService: (service: Service) => void; // Ya no se pasa directamente, se maneja internamente

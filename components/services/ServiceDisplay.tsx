@@ -1,11 +1,11 @@
 import React from 'react';
-import { Service, AdminVendor, User } from '../../types';
+import { Service, Vendor, User } from '../../types';
 import PhotographyServiceDisplay from './PhotographyServiceDisplay';
 import { GenericServiceDisplay } from './GenericServiceDisplay';
 
 interface ServiceDisplayProps {
     service: Service;
-    vendor: AdminVendor;
+    vendor: Vendor;
     isEditing: boolean;
     onEdit: () => void;
     onSave: (updatedService: Partial<Service>) => void;

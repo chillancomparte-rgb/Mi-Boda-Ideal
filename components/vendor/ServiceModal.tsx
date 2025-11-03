@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Añadir useEffect
 import { XIcon } from '../icons/XIcon';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
 import { Service } from '../../types';
+import { uploadImageToHosting } from '../../services/hostingUploadService'; // Importar el servicio de subida
 
 interface ServiceModalProps {
     service: Service | null;
     onClose: () => void;
-    onSave: (service: Omit<Service, 'id'>) => void;
+    onSave: (service: Omit<Service, 'id'>, newImages: File[]) => Promise<void>; // Modificar onSave para aceptar nuevas imágenes
     isSaving: boolean;
 }
 
@@ -17,7 +18,20 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, i
         price: 0,
         category: [],
         locations: [],
+        images: [], // Inicializar images
     });
+    const [newImages, setNewImages] = useState<File[]>([]); // Estado para las nuevas imágenes a subir
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]); // Estado para las previsualizaciones de imágenes
+
+    useEffect(() => {
+        // Cuando el servicio cambia (ej. al abrir el modal para editar), actualizar las previsualizaciones
+        if (service && service.images) {
+            setImagePreviews(service.images);
+        } else {
+            setImagePreviews([]);
+        }
+        setNewImages([]); // Limpiar nuevas imágenes al cambiar de servicio
+    }, [service]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
@@ -48,9 +62,40 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, i
         }
     };
 
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files) {
+            const filesArray = Array.from(e.target.files);
+            setNewImages(prev => [...prev, ...filesArray]);
+
+            // Generar previsualizaciones para las nuevas imágenes
+            filesArray.forEach(file => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setImagePreviews(prev => [...prev, reader.result as string]);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+    };
+
+    const handleRemoveImage = (indexToRemove: number, isNewImage: boolean) => {
+        if (isNewImage) {
+            setNewImages(prev => prev.filter((_, index) => index !== indexToRemove));
+            // También remover de las previsualizaciones si es una imagen nueva
+            setImagePreviews(prev => prev.filter((_, index) => index !== (formData.images?.length || 0) + indexToRemove));
+        } else {
+            // Si es una imagen existente, la marcamos para eliminar o la quitamos de la lista
+            setFormData(prev => ({
+                ...prev,
+                images: prev.images?.filter((_, index) => index !== indexToRemove) || [],
+            }));
+            setImagePreviews(prev => prev.filter((_, index) => index !== indexToRemove));
+        }
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        onSave(formData);
+        onSave(formData, newImages); // Pasar también las nuevas imágenes
     };
 
     return (
@@ -88,6 +133,30 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, i
                     <div>
                         <label htmlFor="price" className="block text-sm font-medium text-gray-700">Precio (CLP)</label>
                         <input type="number" name="price" id="price" value={formData.price} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" required />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Imágenes del Servicio</label>
+                        <input
+                            type="file"
+                            multiple
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-light file:text-brand-primary hover:file:bg-brand-primary hover:file:text-white"
+                        />
+                        <div className="mt-4 grid grid-cols-3 gap-4">
+                            {imagePreviews.map((image, index) => (
+                                <div key={index} className="relative group">
+                                    <img src={image} alt={`Preview ${index}`} className="w-full h-24 object-cover rounded-md" />
+                                    <button
+                                        type="button"
+                                        onClick={() => handleRemoveImage(index, index >= (service?.images?.length || 0))}
+                                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        <XIcon className="h-4 w-4" />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Regiones de Operación</label>

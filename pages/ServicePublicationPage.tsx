@@ -4,7 +4,7 @@ import { db } from '../services/firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import Spinner from '../components/Spinner';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../constants';
-import { Service, AdminVendor } from '../types';
+import { Service, Vendor } from '../types';
 import ServiceDisplay from '../components/services/ServiceDisplay';
 
 interface ServicePublicationPageProps {
@@ -16,7 +16,7 @@ interface ServicePublicationPageProps {
 const ServicePublicationPage: React.FC<ServicePublicationPageProps> = ({ vendorId, serviceId, onBack }) => {
     const { user } = useAuth();
     const [service, setService] = useState<Service | null>(null);
-    const [vendor, setVendor] = useState<AdminVendor | null>(null);
+    const [vendor, setVendor] = useState<Vendor | null>(null);
     const [formData, setFormData] = useState<Partial<Service>>({});
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
@@ -39,7 +39,7 @@ const ServicePublicationPage: React.FC<ServicePublicationPageProps> = ({ vendorI
                 const vendorDocRef = doc(db, 'vendors', vendorId);
                 const vendorDocSnap = await getDoc(vendorDocRef);
                 if (vendorDocSnap.exists()) {
-                    setVendor(vendorDocSnap.data() as AdminVendor);
+                    setVendor(vendorDocSnap.data() as Vendor);
                 }
 
             } catch (error) {
