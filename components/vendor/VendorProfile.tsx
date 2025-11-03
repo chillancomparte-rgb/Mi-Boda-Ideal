@@ -40,7 +40,7 @@ const VendorProfile: React.FC = () => {
                     setVendorData(data);
                     setFormData({
                         ...data,
-                        locations: data.locations || [],
+                        locations: Array.isArray(data.locations) ? data.locations : [],
                     });
                 } else {
                     setVendorData(null); 

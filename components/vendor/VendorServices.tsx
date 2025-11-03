@@ -7,15 +7,7 @@ import { EyeIcon } from '../icons/EyeIcon';
 import { TrashIcon } from '../icons/TrashIcon';
 import Spinner from '../Spinner';
 import { MapPinIcon } from '../icons/MapPinIcon';
-
-interface Service {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    category: string;
-    locations: string[];
-}
+import { Service } from '../../types';
 
 interface VendorServicesProps {
     openModal: (service?: Service) => void;
@@ -79,7 +71,13 @@ const VendorServices: React.FC<VendorServicesProps> = ({ openModal, services, se
                         <div key={service.id} className="bg-gray-50 p-4 rounded-lg border border-gray-200">
                             <div className="flex justify-between items-start">
                                 <div>
-                                    <span className="text-xs font-semibold bg-brand-accent text-white px-2 py-1 rounded-full">{service.category}</span>
+                                    <span className="text-xs font-semibold bg-brand-accent text-white px-2 py-1 rounded-full">
+    {
+        Array.isArray(service.category)
+            ? service.category.filter(item => typeof item === 'string').join(', ')
+            : (typeof service.category === 'string' ? service.category : 'Categoría no especificada')
+    }
+</span>
                                     <h4 className="font-bold text-lg text-brand-dark mt-2">{service.name}</h4>
                                     <p className="text-gray-600 text-sm mt-1">{service.description}</p>
                                 </div>

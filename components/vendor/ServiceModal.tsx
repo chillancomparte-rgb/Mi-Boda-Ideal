@@ -1,15 +1,7 @@
 import React, { useState } from 'react';
 import { XIcon } from '../icons/XIcon';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
-
-interface Service {
-    id: string;
-    name: string;
-    description: string;
-    price: number;
-    category: string;
-    locations: string[];
-}
+import { Service } from '../../types';
 
 interface ServiceModalProps {
     service: Service | null;
@@ -19,17 +11,25 @@ interface ServiceModalProps {
 }
 
 const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, isSaving }) => {
-    const [formData, setFormData] = useState<Omit<Service, 'id'> | Service>(service || {
+    const [formData, setFormData] = useState<Omit<Service, 'id'>>(() => service ? { ...service, locations: service.locations || [], category: service.category || [] } : {
         name: '',
         description: '',
         price: 0,
-        category: VENDOR_CATEGORIES[0] || '',
+        category: [],
         locations: [],
     });
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: name === 'price' ? parseFloat(value) || 0 : value }));
+    };
+
+    const handleCategoryChange = (cat: string) => {
+        const currentCategories = formData.category || [];
+        const newCategories = currentCategories.includes(cat)
+            ? currentCategories.filter(c => c !== cat)
+            : [...currentCategories, cat];
+        setFormData({ ...formData, category: newCategories });
     };
 
     const handleLocationChange = (location: string) => {
@@ -66,10 +66,20 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, i
                         <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" required />
                     </div>
                     <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">Categoría</label>
-                        <select name="category" id="category" value={formData.category} onChange={handleChange} className="mt-1 block w-full p-2 border border-gray-300 rounded-md" required>
-                            {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Categorías</label>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {VENDOR_CATEGORIES.map(cat => (
+                                <label key={cat} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={(formData.category || []).includes(cat)}
+                                        onChange={() => handleCategoryChange(cat)}
+                                        className="rounded text-brand-primary focus:ring-brand-primary"
+                                    />
+                                    <span className="text-sm">{cat}</span>
+                                </label>
+                            ))}
+                        </div>
                     </div>
                     <div>
                         <label htmlFor="description" className="block text-sm font-medium text-gray-700">Descripción</label>
@@ -83,8 +93,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, i
                         <label className="block text-sm font-medium text-gray-700 mb-2">Regiones de Operación</label>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                             <label className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50 cursor-pointer font-bold">
-                                <input 
-                                    type="checkbox" 
+                                <input
+                                    type="checkbox"
                                     onChange={handleSelectAllRegions}
                                     checked={(formData.locations || []).length === CHILE_REGIONS.length}
                                     className="rounded text-brand-primary focus:ring-brand-primary"
@@ -93,8 +103,8 @@ const ServiceModal: React.FC<ServiceModalProps> = ({ service, onClose, onSave, i
                             </label>
                             {CHILE_REGIONS.map(reg => (
                                 <label key={reg} className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50 cursor-pointer">
-                                    <input 
-                                        type="checkbox" 
+                                    <input
+                                        type="checkbox"
                                         checked={(formData.locations || []).includes(reg)}
                                         onChange={() => handleLocationChange(reg)}
                                         className="rounded text-brand-primary focus:ring-brand-primary"

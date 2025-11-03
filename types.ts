@@ -47,6 +47,16 @@ export type Page =
     | (string & {});
 
 
+export interface Service {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    category: string[];
+    locations: string[];
+    gallery?: string[];
+}
+
 export interface Vendor {
     id?: string;
     name: string;
@@ -151,6 +161,7 @@ export interface AdminUser {
 export interface AdminVendor {
     id: string;
     name: string;
+    companyName?: string;
     category: string;
     location: string;
     locations?: string[];

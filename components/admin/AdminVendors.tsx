@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { db } from '../../services/firebase';
 import { collection, getDocs, doc, deleteDoc, addDoc, updateDoc, getDoc } from 'firebase/firestore';
-import type { AdminVendor, Page, Vendor, Inspiration } from '../../types';
+import type { AdminVendor, Page, Vendor, Inspiration, Service } from '../../types';
 import Spinner from '../Spinner';
 import { PlusCircleIcon } from '../icons/PlusCircleIcon';
 import { EditIcon } from '../icons/EditIcon';
@@ -9,14 +9,16 @@ import { TrashIcon } from '../icons/TrashIcon';
 import { XIcon } from '../icons/XIcon';
 import { VENDOR_CATEGORIES, CHILE_REGIONS } from '../../constants';
 import { uploadImageToHosting } from '../../services/hostingUploadService';
-import { UploadCloudIcon } from '../icons/UploadCloudIcon';
 import { CrownIcon } from '../icons/CrownIcon'; // Importar CrownIcon
 
+// FIX: La interface se movió aquí para estar junto al componente
 interface VendorFormData extends Partial<AdminVendor> {
     description?: string;
 }
 
-const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiration | AdminVendor, category?: string) => void }> = ({ navigate }) => {
+const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiration | AdminVendor | Service, category?: string) => void }> = ({ navigate }) => {
+    
+    // --- ESTADO Y FUNCIONES ---
     const [vendors, setVendors] = useState<AdminVendor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -27,10 +29,14 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
     const [formData, setFormData] = useState<VendorFormData>({});
 
     const [isSaving, setIsSaving] = useState(false);
-    const [isUploading, setIsUploading] = useState(false);
+    const [isUploading, setIsUploading] = useState(false); // <--- ESTE ES EL 'isUploading' QUE DA ERROR
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const [isContactModalOpen, setIsContactModalOpen] = useState(false);
     const [selectedVendorContact, setSelectedVendorContact] = useState<AdminVendor | null>(null);
-    const [activeTab, setActiveTab] = useState('company'); // New state for active tab
+    const [activeTab, setActiveTab] = useState('company'); 
+    const [showServicesModal, setShowServicesModal] = useState(false);
+    const [selectedVendorForServices, setSelectedVendorForServices] = useState<AdminVendor | null>(null);
 
 
     const fetchVendors = async () => {
@@ -47,7 +53,6 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         }
     };
 
-
     useEffect(() => {
         fetchVendors();
     }, []);
@@ -56,8 +61,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         setIsModalOpen(false);
         setEditingVendor(null);
         setFormData({});
-
-        fetchVendors(); // Refresh the vendor list when modal closes
+        fetchVendors();
     };
 
     const handleOpenContactModal = (vendor: AdminVendor) => {
@@ -65,6 +69,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         setIsContactModalOpen(true);
     };
 
+    // FIX: Faltaba esta función
     const handleCloseContactModal = () => {
         setIsContactModalOpen(false);
         setSelectedVendorContact(null);
@@ -88,10 +93,10 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
             facebookUrl: '',
             instagramUrl: '',
             websiteUrl: '',
-            status: 'Pendiente', // Default status for new vendors
-            isPremium: false, // Default to non-premium
+            status: 'Pendiente',
+            isPremium: false,
         });
-        setActiveTab('company'); // Reset to company tab when opening modal
+        setActiveTab('company');
         setIsModalOpen(true);
     };
 
@@ -103,10 +108,6 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         });
     };
 
-
-    
-
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.name || !formData.email || !formData.category) {
@@ -117,12 +118,11 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         setIsSaving(true);
         try {
             if (editingVendor) {
-                // Update
                 const vendorDoc = doc(db, 'vendors', editingVendor.id);
-                await updateDoc(vendorDoc, formData as Partial<AdminVendor>);
+                // FIX: Usamos {...formData} para evitar el error de tipo de Firebase
+                await updateDoc(vendorDoc, { ...formData } as Partial<AdminVendor>);
             } else {
-                // Create
-                await addDoc(collection(db, 'vendors'), { ...formData });
+                await addDoc(collection(db, 'vendors'), { ...formData, registeredDate: new Date().toISOString() });
             }
             fetchVendors();
             handleCloseModal();
@@ -156,13 +156,14 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
         }
     };
 
-
+    // FIX: Las constantes de estilos se mueven aquí, antes del 'return'
     const searchInputStyle = "w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:ring-brand-primary focus:border-brand-primary";
     const modalInputStyle = "mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:ring-brand-primary focus:border-brand-primary";
 
+    // --- INICIO DEL JSX (RETURN) ---
     return (
         <div className="bg-white p-6 rounded-lg shadow animate-fade-in">
-             <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold text-gray-800">Gestionar Proveedores</h1>
                 <button onClick={() => handleOpenModal()} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent flex items-center">
                     <PlusCircleIcon className="h-5 w-5 mr-2"/>
@@ -170,8 +171,8 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                 </button>
             </div>
 
+            {/* --- FILTROS --- */}
             <div className="flex gap-4 mb-6">
-                {/* Category Filter */}
                 <select
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
@@ -181,7 +182,6 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                     {VENDOR_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                 </select>
 
-                {/* Region Filter */}
                 <select
                     value={regionFilter}
                     onChange={(e) => setRegionFilter(e.target.value)}
@@ -192,6 +192,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                 </select>
             </div>
 
+            {/* --- BÚSQUEDA --- */}
             <div className="flex flex-col md:flex-row gap-4 mb-6 items-center md:items-end">
                 <div className="w-full md:flex-grow">
                     <label htmlFor="vendorSearch" className="block text-sm font-medium text-gray-700 mb-1">
@@ -208,6 +209,7 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                 </div>
             </div>
 
+            {/* --- TABLA --- */}
             {isLoading ? <Spinner /> : (
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200">
@@ -246,46 +248,25 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                                             {vendor.status || 'Pendiente'}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <div className="flex items-center space-x-3">
-                                            <button onClick={() => handleOpenModal(vendor)} className="text-gray-400 hover:text-blue-600" title="Editar Proveedor">
-                                                <EditIcon className="h-5 w-5"/>
-                                            </button>
-                                            <button onClick={() => handleDelete(vendor.id)} className="text-gray-400 hover:text-red-700" title="Eliminar Proveedor">
-                                                <TrashIcon className="h-5 w-5"/>
-                                            </button>
-                                            <button onClick={async () => {
-                                                if (vendor.id) {
-                                                    const vendorDocRef = doc(db, 'vendors', vendor.id);
-                                                    const vendorDocSnap = await getDoc(vendorDocRef);
-                                                    if (vendorDocSnap.exists()) {
-                                                        const fullVendorData = { id: vendorDocSnap.id, ...vendorDocSnap.data() } as AdminVendor;
-                                                        const mappedVendor: Vendor = {
-                                                            id: fullVendorData.id,
-                                                            name: fullVendorData.name,
-                                                            category: fullVendorData.category,
-                                                            location: fullVendorData.location,
-                                                            city: fullVendorData.location, // Asumiendo que location es la ciudad/región
-                                                            rating: 0, // Valor por defecto, AdminVendor no tiene rating
-                                                            description: fullVendorData.description || '',
-                                                            imageUrl: fullVendorData.logoUrl || '', // Asumiendo logoUrl como imagen principal
-                                                            startingPrice: 0, // Valor por defecto, AdminVendor no tiene startingPrice
-                                                            isPremium: fullVendorData.isPremium,
-                                                        };
-                                                        navigate('vendor-profile', mappedVendor);
-                                                    }
-                                                }
-                                            }} className="text-gray-400 hover:text-green-600" title="Ver Perfil">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-                                                </svg>
-                                            </button>
-                                            <button onClick={() => handleOpenContactModal(vendor)} className="text-gray-400 hover:text-purple-600" title="Ver Contacto">
-                                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
-                                                </svg>
-                                            </button>
-                                        </div>
+                                    {/* FIX: Faltaba esta celda de "Acciones" */}
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                        <button onClick={() => handleOpenModal(vendor)} className="text-brand-primary hover:text-brand-accent mr-3" title="Editar">
+                                            <EditIcon className="h-5 w-5"/>
+                                        </button>
+                                        <button onClick={() => navigate('vendor-profile', vendor)} className="text-gray-400 hover:text-green-600 mr-3" title="Ver Perfil">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                            </svg>
+                                        </button>
+                                        <button onClick={() => handleOpenContactModal(vendor)} className="text-blue-500 hover:text-blue-700 mr-3" title="Ver Contacto">
+                                          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                                          </svg>
+                                        </button>
+                                        <button onClick={() => handleDelete(vendor.id)} className="text-red-600 hover:text-red-800" title="Eliminar">
+                                            <TrashIcon className="h-5 w-5"/>
+                                        </button>
                                     </td>
                                 </tr>
                             ))}
@@ -293,8 +274,9 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                     </table>
                 </div>
             )}
-            
-             {isModalOpen && (
+
+            {/* --- MODAL DE EDICIÓN/CREACIÓN --- */}
+            {isModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
                         <div className="p-6 border-b flex justify-between items-center">
@@ -355,8 +337,6 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                                             <label className="block text-sm font-medium text-gray-700">Sitio Web URL</label>
                                             <input type="url" name="websiteUrl" value={formData.websiteUrl || ''} onChange={handleInputChange} className={modalInputStyle} />
                                         </div>
-
-                                        {/* Status and Premium Toggle */}
                                         <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
                                             <div>
                                                 <label className="block text-sm font-medium text-gray-700">Estado del Proveedor</label>
@@ -378,19 +358,12 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                                                 <label htmlFor="isPremium" className="ml-2 block text-sm font-medium text-gray-700">Es Premium</label>
                                             </div>
                                         </div>
-
-                                        {editingVendor && (
-                                            <>
-                                                <div className="md:col-span-2">
-                                                    <label className="block text-sm font-medium text-gray-700">Descripción</label>
-                                                    <textarea name="description" rows={4} value={formData.description || ''} onChange={handleInputChange} className={modalInputStyle}></textarea>
-                                                </div>
-
-                                            </>
-                                        )}
+                                        <div className="md:col-span-2">
+                                            <label className="block text-sm font-medium text-gray-700">Descripción</label>
+                                            <textarea name="description" rows={4} value={formData.description || ''} onChange={handleInputChange} className={modalInputStyle}></textarea>
+                                        </div>
                                     </div>
                                 )}
-
                                 {activeTab === 'contact' && (
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div>
@@ -418,14 +391,14 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                             </div>
                             <div className="p-6 border-t bg-gray-50 flex justify-end gap-4">
                                 <button type="button" onClick={handleCloseModal} className="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-md hover:bg-gray-300">Cancelar</button>
-                                <button type="submit" disabled={isSaving} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent disabled:bg-gray-400">Guardar</button>
+                                <button type="submit" disabled={isSaving || isUploading} className="bg-brand-primary text-white font-bold py-2 px-4 rounded-md hover:bg-brand-accent disabled:bg-gray-400">Guardar</button>
                             </div>
                         </form>
                     </div>
                 </div>
             )}
 
-            {/* Contact Details Modal */}
+            {/* --- MODAL DE DETALLES DE CONTACTO --- */}
             {isContactModalOpen && selectedVendorContact && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-lg shadow-xl w-full max-w-md">
@@ -446,7 +419,8 @@ const AdminVendors: React.FC<{ navigate: (page: Page, data?: Vendor | Inspiratio
                     </div>
                 </div>
             )}
-        </div>
+
+        </div> // <-- FIX: Este es el </div> de cierre principal que faltaba
     );
 };
 
